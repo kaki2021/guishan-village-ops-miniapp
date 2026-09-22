@@ -1,0 +1,210 @@
+.container {
+  padding: 20rpx 24rpx 120rpx;
+  background: #f5f5f0;
+  min-height: 100vh;
+}
+.section-title {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #888;
+  margin: 28rpx 8rpx 14rpx;
+}
+.empty-tip {
+  text-align: center;
+  color: #aaa;
+  font-size: 26rpx;
+  padding: 80rpx 0;
+}
+
+/* 顶部一行身份 */
+.id-line {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
+}
+.id-text {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+.id-badges {
+  display: flex;
+  gap: 10rpx;
+  flex-wrap: wrap;
+}
+.role-badge {
+  font-size: 20rpx;
+  color: #1a7a5e;
+  background: #e8f5f0;
+  padding: 5rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+/* 卡片列表 */
+.card-list {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 0 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
+}
+.row {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f3f3ef;
+}
+.row:last-child { border-bottom: none; }
+
+/* 左侧图标色块 */
+.row-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.c-green  { background: #e8f5f0; }
+.c-blue   { background: #e6f1fb; }
+.c-orange { background: #fff1e0; }
+.c-red    { background: #fdecea; }
+
+.row-main { flex: 1; padding-right: 12rpx; }
+.row-label {
+  font-size: 28rpx;
+  color: #1a1a1a;
+  display: block;
+}
+.row-hint {
+  font-size: 22rpx;
+  color: #aaa;
+  display: block;
+  margin-top: 6rpx;
+}
+.row-count {
+  font-size: 24rpx;
+  color: #fff;
+  background: #e67e22;
+  min-width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  border-radius: 999rpx;
+  padding: 0 12rpx;
+  flex-shrink: 0;
+}
+
+/* 空状态：小图标 + 一句话，不占整屏 */
+.empty-box {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 44rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
+}
+.empty-emoji {
+  font-size: 48rpx;
+  opacity: 0.6;
+}
+.empty-word {
+  font-size: 24rpx;
+  color: #bbb;
+  margin-top: 10rpx;
+}
+/* ============ 我的工作记录（日报）· 追加到 personal/index.wxss 末尾 ============ */
+.wl-stat {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+}
+.wl-stat-box {
+  flex: 1;
+  background: #f7f7f2;
+  border-radius: 16rpx;
+  padding: 24rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+.wl-stat-num { font-size: 48rpx; font-weight: 600; color: #639922; }
+.wl-stat-label { font-size: 22rpx; color: #888; }
+
+.wl-day {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.wl-day-head { display: flex; justify-content: space-between; align-items: center; }
+.wl-date { font-size: 26rpx; color: #333; font-weight: 500; }
+.wl-valid { font-size: 22rpx; padding: 2rpx 14rpx; border-radius: 999rpx; }
+.wl-valid.yes { color: #fff; background: #639922; }
+.wl-valid.no { color: #999; background: #eee; }
+.wl-done { font-size: 24rpx; color: #555; line-height: 1.5; }
+.wl-note { font-size: 22rpx; color: #aaa; }
+
+/* ===== 今日头衔待办（清单勾选） ===== */
+.duty-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+.duty-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.duty-title { font-size: 28rpx; font-weight: 500; color: #1a1a1a; }
+.duty-progress {
+  font-size: 22rpx;
+  color: #1a7a5e;
+  background: #e8f5f0;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+}
+.duty-note { font-size: 23rpx; color: #999; margin-top: 8rpx; display: block; }
+.duty-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f2f1ea;
+}
+.duty-item:last-of-type { border-bottom: none; }
+.duty-box {
+  flex-shrink: 0;
+  width: 36rpx;
+  height: 36rpx;
+  line-height: 34rpx;
+  text-align: center;
+  border-radius: 8rpx;
+  border: 2rpx solid #d5d3c8;
+  color: transparent;
+  font-size: 24rpx;
+  margin-top: 2rpx;
+}
+.duty-box.on {
+  background: #1a7a5e;
+  border-color: #1a7a5e;
+  color: #fff;
+}
+.duty-text { flex: 1; font-size: 26rpx; color: #333; line-height: 1.5; }
+.duty-text.done { color: #bbb; text-decoration: line-through; }
+.duty-empty { font-size: 23rpx; color: #bbb; padding-top: 12rpx; display: block; }
+.duty-tip { font-size: 21rpx; color: #bbb; text-align: center; margin-bottom: 8rpx; }

@@ -1,0 +1,880 @@
+<view class="container">
+  <!-- 顶部 tab 切换 -->
+  <view class="wh-tabs">
+    <view class="wh-tab {{activeTab==='stock'?'active':''}}" bindtap="switchTab" data-tab="stock">库存</view>
+    <view class="wh-tab {{activeTab==='purchase'?'active':''}}" bindtap="switchTab" data-tab="purchase">采购</view>
+    <view class="wh-tab {{activeTab==='requisition'?'active':''}}" bindtap="switchTab" data-tab="requisition">领料</view>
+    <view class="wh-tab {{activeTab==='stocktake'?'active':''}}" bindtap="switchTab" data-tab="stocktake">盘点</view>
+  </view>
+
+  <!-- ============ 库存视图 ============ -->
+  <block wx:if="{{activeTab==='stock'}}">
+    <view class="add-btn-wrap" wx:if="{{iCanManageStock}}">
+      <button class="add-btn" bindtap="showAddModal">+ 记录补给 / 消耗</button>
+      <button class="add-btn ai" bindtap="openAiModal">🤖 AI 帮填入库</button>
+    </view>
+
+    <!-- 地方 tab -->
+    <scroll-view class="store-nav" scroll-x>
+      <view class="store-nav-tag {{currentSiteId===s.id?'active':''}}"
+        wx:for="{{siteTabs}}" wx:key="id" wx:for-item="s"
+        bindtap="selectSite" data-id="{{s.id}}">{{s.name}}</view>
+      <view class="store-nav-manage" bindtap="openManageModal">⚙︎ 管理</view>
+    </scroll-view>
+    <!-- 分库 tab -->
+    <scroll-view class="store-nav sub" scroll-x wx:if="{{storeTabs.length > 0}}">
+      <view class="store-nav-tag sub {{currentStoreId===st.id?'active':''}}"
+        wx:for="{{storeTabs}}" wx:key="id" wx:for-item="st"
+        bindtap="selectStore" data-id="{{st.id}}">{{st.name}}</view>
+    </scroll-view>
+    <view class="store-empty-hint" wx:if="{{currentSiteId!=='__none__' && storeTabs.length === 0}}">这个地方还没有分库，点「⚙︎ 管理」添加</view>
+    <view class="stk-last-line" wx:if="{{currentStoreId && currentStoreId !== '__none__'}}">上次盘点：{{stkTimeByStore[currentStoreId] || '还没盘过'}}</view>
+
+    <block wx:if="{{items.length === 0}}">
+      <view class="empty-tip">这个分库暂无物资</view>
+    </block>
+
+    <block wx:else>
+      <block wx:for="{{groupedItems}}" wx:key="category" wx:for-item="group">
+        <view class="section-title">{{group.icon}} {{group.category}}</view>
+        <view class="item-grid">
+          <view class="item-card" wx:for="{{group.items}}" wx:key="_id" wx:for-item="item">
+            <!-- 卡片主体：长按编辑（图片位已预留：有实拍图显示图，没有显示图标） -->
+            <view class="item-card-body"
+              bindlongpress="longPressItem"
+              data-id="{{item._id}}"
+              data-name="{{item.name}}"
+              data-icon="{{item.icon}}"
+              data-category="{{item.category}}"
+              data-threshold="{{item.lowThreshold}}">
+              <view class="item-body-row">
+                <image class="item-thumb" wx:if="{{item.photoUrl}}" src="{{item.photoUrl}}" mode="aspectFill" catchtap="previewItemPhoto" data-url="{{item.photoUrl}}"/>
+                <view class="item-thumb-holder" wx:else catchtap="addPhotoFast" data-id="{{item._id}}">
+                  <text class="item-thumb-icon">{{item.icon}}</text>
+                  <text class="item-thumb-cam" wx:if="{{iCanManageStock}}">📷</text>
+                </view>
+                <view class="item-body-info">
+                  <text class="item-name">{{item.name}}</text>
+                  <view class="item-meta-row">
+                    <text class="item-warn" wx:if="{{item.qty <= item.lowThreshold}}">库存偏低</text>
+                    <text class="item-operator" wx:if="{{item.lastOperator}}">{{item.lastOperator}} 更新</text>
+                  </view>
+                  <text class="item-time" wx:if="{{item.updateTimeText}}">{{item.updateTimeText}}</text>
+                </view>
+              </view>
+            </view>
+            <view class="item-card-foot" wx:if="{{item.isInstant && iCanManageStock}}">
+              <view class="item-btn item-plus"
+                bindtap="quickPlus" bindlongpress="longPressQty"
+                data-name="{{item.name}}" data-type="in">+1</view>
+              <text class="item-qty">{{item.qty}}</text>
+              <view class="item-btn item-minus"
+                bindtap="quickMinus" bindlongpress="longPressQty"
+                data-name="{{item.name}}" data-qty="{{item.qty}}" data-type="out">-1</view>
+            </view>
+            <view class="item-card-foot" wx:elif="{{item.isInstant}}">
+              <text class="item-qty">{{item.qty}}</text>
+            </view>
+            <view class="item-card-foot" wx:else>
+              <text class="item-mode-tag {{item.consumeMode==='approval'?'approval':''}}">{{item.modeLabel}}</text>
+              <text class="item-qty">{{item.qty}}</text>
+            </view>
+          </view>
+        </view>
+      </block>
+    </block>
+  </block>
+
+  <!-- ============ 采购视图 ============ -->
+  <block wx:if="{{activeTab==='purchase'}}">
+    <view class="add-btn-wrap">
+      <view class="purchase-btn-row">
+        <button class="add-btn" bindtap="showPurchaseModal">+ 发起采购</button>
+        <view class="contact-entry" bindtap="openContacts">📇<text class="contact-entry-txt">联系人</text></view>
+      </view>
+    </view>
+
+    <!-- 我垫付待还：采购人视角，一眼看到几单多少钱还没还（没有则不显示） -->
+    <view class="myawait-banner" wx:if="{{myAwaitCount > 0}}" bindtap="toggleMyAwait">
+      <text class="myawait-main">💰 我垫付待还：{{myAwaitCount}} 单 · ¥{{myAwaitTotal}}</text>
+      <text class="myawait-arrow">{{myAwaitOpen ? '▴' : '▾'}}</text>
+    </view>
+    <view class="myawait-panel" wx:if="{{myAwaitCount > 0 && myAwaitOpen}}">
+      <view class="myawait-item" wx:for="{{myAwaitList}}" wx:key="_id" wx:for-item="a">
+        <view class="myawait-item-left">
+          <text class="myawait-item-title">{{a.title}}</text>
+          <text class="myawait-item-sub">{{a.timeText}} · {{a.stageLabel}}</text>
+        </view>
+        <text class="myawait-item-amt">¥{{a.amountDisplay}}</text>
+      </view>
+      <view class="myawait-hint">入库并由账房记账后即还清，此处自动消失</view>
+    </view>
+
+    <!-- 类型切换：全部 / 物资 / 食材 -->
+    <view class="sub-switch">
+      <view class="sub-switch-tag {{pKindFilter==='all'?'active':''}}" bindtap="setPKindFilter" data-val="all">全部</view>
+      <view class="sub-switch-tag {{pKindFilter==='general'?'active':''}}" bindtap="setPKindFilter" data-val="general">📦 物资</view>
+      <view class="sub-switch-tag {{pKindFilter==='food'?'active':''}}" bindtap="setPKindFilter" data-val="food">🍚 食材</view>
+    </view>
+
+    <view class="ledger-filter-row">
+      <view class="ledger-filter-tag {{purchaseFilter==='todo'?'active':''}}" bindtap="setPurchaseFilter" data-val="todo">进行中</view>
+      <view class="ledger-filter-tag {{purchaseFilter==='done'?'active':''}}" bindtap="setPurchaseFilter" data-val="done">已完成</view>
+      <view class="ledger-filter-tag {{purchaseFilter==='all'?'active':''}}" bindtap="setPurchaseFilter" data-val="all">全部</view>
+    </view>
+
+    <!-- 时间区间（按发起时间，可只填一头，都空=不限） -->
+    <view class="ptime-range">
+      <text class="ptime-range-label">🕐</text>
+      <picker mode="date" value="{{pRangeStart}}" end="{{pRangeEnd}}" bindchange="setPRangeStart">
+        <view class="ptime-range-pick {{pRangeStart?'set':''}}">{{pRangeStart || '起始日期'}}</view>
+      </picker>
+      <text class="ptime-range-sep">~</text>
+      <picker mode="date" value="{{pRangeEnd}}" start="{{pRangeStart}}" bindchange="setPRangeEnd">
+        <view class="ptime-range-pick {{pRangeEnd?'set':''}}">{{pRangeEnd || '结束日期'}}</view>
+      </picker>
+      <view class="ptime-range-clear" wx:if="{{pRangeStart || pRangeEnd}}" bindtap="clearPRange">×</view>
+    </view>
+
+    <!-- 状态细筛：只列当前有单的状态，带数量（换行平铺，全部可见） -->
+    <view class="pstatus-wrap" wx:if="{{pStatusChips.length > 2}}">
+      <view class="pstatus-chip {{pStatusFilter===c.val?'active':''}}"
+            wx:for="{{pStatusChips}}" wx:key="val" wx:for-item="c"
+            bindtap="setPStatusFilter" data-val="{{c.val}}">
+        {{c.label}}<text class="pstatus-count">{{c.count}}</text>
+      </view>
+    </view>
+
+    <view class="empty-tip" wx:if="{{purchasesFiltered.length === 0}}">该分类下暂无采购单</view>
+
+    <view class="pc-card" wx:for="{{purchasesFiltered}}" wx:key="_id" wx:for-item="p">
+      <view class="pc-head" bindtap="tapPurchase" data-item="{{p}}">
+        <view class="pc-head-left">
+          <view class="pc-title-line">
+            <text class="pc-kind-tag" wx:if="{{p.isFood}}">🍚 食材</text>
+            <text class="pc-title">{{p.title || p.itemSummary || '采购单'}}</text>
+          </view>
+          <text class="pc-items">{{p.itemSummary}}</text>
+        </view>
+        <view class="pc-badge {{p.statusClass}}">{{p.statusLabel}}</view>
+      </view>
+
+      <view class="pc-meta" bindtap="tapPurchase" data-item="{{p}}">
+        <text wx:if="{{p.timeText}}" class="pc-time">{{p.timeText}}</text>
+        <text wx:if="{{p.initiatorName}}"> · 发起 {{p.initiatorName}}</text>
+        <text wx:if="{{p.buyerName}}"> · 采购 {{p.buyerName}}</text>
+        <text wx:if="{{p.budget}}"> · 预算 ¥{{p.budget}}</text>
+        <text wx:if="{{p.actualAmount}}"> · 实付 ¥{{p.actualAmount}}</text>
+        <text class="pc-ledger {{p.ledgerLabel==='待记账'?'pending':''}}" wx:if="{{p.ledgerLabel}}"> · {{p.ledgerLabel}}</text>
+      </view>
+
+      <view class="pc-sign" wx:if="{{p.signLabel}}">需双签：{{p.signLabel}}</view>
+
+      <view class="pc-reject" wx:if="{{p.status==='rejected' && p.rejectReason}}">驳回原因：{{p.rejectReason}}</view>
+
+      <!-- 角色感知操作按钮 -->
+      <view class="pc-actions">
+        <view class="pc-btn primary" wx:if="{{p.canApprove}}" catchtap="approvePurchase" data-id="{{p._id}}">签字通过</view>
+        <view class="pc-btn danger" wx:if="{{p.canApprove}}" catchtap="rejectPurchase" data-id="{{p._id}}">驳回</view>
+        <view class="pc-btn primary" wx:if="{{p.canClaim}}" catchtap="claimPurchase" data-id="{{p._id}}">我来认领</view>
+        <view class="pc-btn primary" wx:if="{{p.canReport}}" catchtap="openReport" data-item="{{p}}">去报账</view>
+        <view class="pc-btn primary" wx:if="{{p.canVerify}}" catchtap="openVerify" data-item="{{p}}">核验</view>
+        <view class="pc-btn primary" wx:if="{{p.canStockIn}}" catchtap="openStockIn" data-item="{{p}}">确认入库</view>
+        <view class="pc-btn ghost" wx:if="{{p.canEdit}}" catchtap="resubmitPurchase" data-item="{{p}}">编辑</view>
+        <view class="pc-btn danger-ghost" wx:if="{{p.canDelete}}" catchtap="deletePurchase" data-id="{{p._id}}">删除</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ============ 领料视图 ============ -->
+  <block wx:if="{{activeTab==='requisition'}}">
+    <!-- 领料 / 报废 子切换 -->
+    <view class="sub-switch">
+      <view class="sub-switch-tag {{reqSubTab==='requisition'?'active':''}}" bindtap="switchReqSubTab" data-tab="requisition">领料出库</view>
+      <view class="sub-switch-tag {{reqSubTab==='scrap'?'active':''}}" bindtap="switchReqSubTab" data-tab="scrap">报废报损</view>
+    </view>
+
+    <!-- 领料子区 -->
+    <block wx:if="{{reqSubTab==='requisition'}}">
+      <view class="add-btn-wrap">
+        <button class="add-btn" bindtap="openReqModal">+ 发起领料</button>
+      </view>
+
+      <view class="ledger-filter-row">
+        <view class="ledger-filter-tag {{reqFilter==='todo'?'active':''}}" bindtap="setReqFilter" data-val="todo">进行中</view>
+        <view class="ledger-filter-tag {{reqFilter==='done'?'active':''}}" bindtap="setReqFilter" data-val="done">已出库</view>
+        <view class="ledger-filter-tag {{reqFilter==='all'?'active':''}}" bindtap="setReqFilter" data-val="all">全部</view>
+      </view>
+
+      <view class="empty-tip" wx:if="{{requisitionsFiltered.length === 0}}">该分类下暂无领料单</view>
+
+      <view class="pc-card" wx:for="{{requisitionsFiltered}}" wx:key="_id" wx:for-item="r">
+        <view class="pc-head">
+          <view class="pc-head-left">
+            <text class="pc-title">{{r.itemSummary}}</text>
+            <text class="pc-items" wx:if="{{r.reason}}">用途：{{r.reason}}</text>
+          </view>
+          <view class="pc-badge {{r.statusClass}}">{{r.statusLabel}}</view>
+        </view>
+        <view class="pc-meta">
+          <text wx:if="{{r.applicantName}}">领用 {{r.applicantName}}</text>
+          <text wx:if="{{r.approverName}}"> · 审批 {{r.approverName}}</text>
+          <text wx:if="{{r.delivererName}}"> · 发货 {{r.delivererName}}</text>
+          <text wx:if="{{!r.needApproval}}"> · 免审</text>
+        </view>
+        <view class="pc-reject" wx:if="{{r.status==='rejected' && r.rejectReason}}">驳回原因：{{r.rejectReason}}</view>
+        <view class="pc-actions">
+          <view class="pc-btn primary" wx:if="{{r.canApprove}}" catchtap="approveReq" data-id="{{r._id}}">通过</view>
+          <view class="pc-btn danger" wx:if="{{r.canApprove}}" catchtap="rejectReq" data-id="{{r._id}}">驳回</view>
+          <view class="pc-btn primary" wx:if="{{r.canDeliver}}" catchtap="deliverReq" data-id="{{r._id}}">确认发货</view>
+          <view class="pc-btn danger-ghost" wx:if="{{r.canDelete}}" catchtap="deleteReq" data-id="{{r._id}}">删除</view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 报废子区 -->
+    <block wx:if="{{reqSubTab==='scrap'}}">
+      <view class="export-hint">报废从「库存」里长按物品发起；这里看进度、主管审批</view>
+      <view class="empty-tip" wx:if="{{scrapsFiltered.length === 0}}">暂无报废单</view>
+      <view class="pc-card" wx:for="{{scrapsFiltered}}" wx:key="_id" wx:for-item="r">
+        <view class="pc-head">
+          <view class="pc-head-left">
+            <text class="pc-title">{{r.name}}×{{r.qty}}</text>
+            <text class="pc-items">{{r.reason}}{{r.reasonNote ? '：' + r.reasonNote : ''}} · {{r.recyclableLabel}}</text>
+          </view>
+          <view class="pc-badge {{r.statusClass}}">{{r.statusLabel}}</view>
+        </view>
+        <view class="pc-meta">
+          <text wx:if="{{r.applicantName}}">报废 {{r.applicantName}}</text>
+          <text wx:if="{{r.approverName}}"> · 审批 {{r.approverName}}</text>
+        </view>
+        <view class="pc-reject" wx:if="{{r.status==='rejected' && r.rejectReason}}">驳回原因：{{r.rejectReason}}</view>
+        <view class="pc-actions">
+          <view class="pc-btn primary" wx:if="{{r.canApprove}}" catchtap="approveScrap" data-id="{{r._id}}">批准核销</view>
+          <view class="pc-btn danger" wx:if="{{r.canApprove}}" catchtap="rejectScrap" data-id="{{r._id}}">驳回</view>
+          <view class="pc-btn danger-ghost" wx:if="{{r.canDelete}}" catchtap="deleteScrap" data-id="{{r._id}}">删除</view>
+        </view>
+      </view>
+    </block>
+  </block>
+
+  <!-- ============ 盘点视图 ============ -->
+  <block wx:if="{{activeTab==='stocktake'}}">
+    <view class="sub-switch">
+      <view class="sub-switch-tag {{stkSubTab==='take'?'active':''}}" bindtap="switchStkSubTab" data-tab="take">盘点</view>
+      <view class="sub-switch-tag {{stkSubTab==='logs'?'active':''}}" bindtap="switchStkSubTab" data-tab="logs">操作记录</view>
+    </view>
+
+    <!-- 盘点子区 -->
+    <block wx:if="{{stkSubTab==='take'}}">
+      <view class="add-btn-wrap">
+        <button class="add-btn" bindtap="openStkModal">+ 发起盘点</button>
+      </view>
+      <view class="empty-tip" wx:if="{{stocktakes.length === 0}}">还没有盘点记录</view>
+      <view class="pc-card" wx:for="{{stocktakes}}" wx:key="_id" wx:for-item="s">
+        <view class="pc-head">
+          <view class="pc-head-left">
+            <text class="pc-title">{{s.storeName}}</text>
+            <text class="pc-items">盘 {{s.total}} 项 · {{s.diffCount}} 项有差异</text>
+          </view>
+          <view class="pc-badge {{s.diffCount>0?'st-pending':'st-done'}}">{{s.diffCount>0?'有差异':'账实相符'}}</view>
+        </view>
+        <view class="pc-meta">
+          <text>{{s.operatorName}}</text><text> · {{s.timeText}}</text>
+        </view>
+        <view class="stk-diff" wx:for="{{s.items}}" wx:key="name" wx:for-item="it" wx:if="{{it.diff !== 0}}">
+          <text>{{it.name}}</text>
+          <text class="stk-diff-val {{it.diff>0?'up':'down'}}">{{it.systemQty}}→{{it.actualQty}}（{{it.diff>0?'+':''}}{{it.diff}}）</text>
+        </view>
+        <view class="stk-photo-row" wx:if="{{s.photoUrls && s.photoUrls.length}}">
+          <image class="stk-photo-thumb" wx:for="{{s.photoUrls}}" wx:key="*this" wx:for-item="u" wx:for-index="ui"
+            src="{{u}}" mode="aspectFill" bindtap="previewStkPhoto" data-urls="{{s.photoUrls}}" data-index="{{ui}}"/>
+        </view>
+      </view>
+    </block>
+
+    <!-- 操作记录子区 -->
+    <block wx:if="{{stkSubTab==='logs'}}">
+      <view class="export-hint">仓库近期操作：入库 / 出库 / 报废 / 编辑 / 删除 / 盘点</view>
+      <view class="empty-tip" wx:if="{{whLogs.length === 0}}">暂无操作记录</view>
+      <view class="log-row" wx:for="{{whLogs}}" wx:key="_id" wx:for-item="g">
+        <view class="log-tag log-{{g.type}}">{{g.label}}</view>
+        <view class="log-main">
+          <text class="log-text">{{g.text}}</text>
+          <text class="log-meta">{{g.who}}{{g.who ? ' · ' : ''}}{{g.timeText}}</text>
+        </view>
+      </view>
+    </block>
+  </block>
+</view>
+
+<!-- ============ AI 帮填入库弹窗 ============ -->
+<view class="modal-mask" wx:if="{{showAiModal}}" bindtap="hideAiModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">🤖 AI 帮填入库</view>
+
+    <!-- 第一步：输入文字 -->
+    <block wx:if="{{aiStep === 'input'}}">
+      <view class="ai-tip">用一句话写下要入库的东西，AI 帮你梳理成清单。例如：矿泉水 24 瓶，方便面 2 箱，鸡蛋 30 个</view>
+      <textarea class="ai-textarea" placeholder="在这里输入…" value="{{aiText}}" bindinput="setAiText" maxlength="500"></textarea>
+      <button class="submit-btn" bindtap="aiParse" loading="{{aiParsing}}" disabled="{{aiParsing}}">{{aiParsing ? 'AI 梳理中…' : '让 AI 梳理'}}</button>
+      <view class="ai-or">— 或 —</view>
+      <view class="ai-file-row">
+        <button class="ai-file-btn" bindtap="aiPickImage" loading="{{aiParsing}}" disabled="{{aiParsing}}">📷 上传图片</button>
+        <button class="ai-file-btn" bindtap="aiPickFile" loading="{{aiParsing}}" disabled="{{aiParsing}}">📄 上传文件</button>
+      </view>
+      <view class="ai-tip-sm">图片可拍照或从相册选；文件需从微信聊天里挑：先把 Excel/Word 发给「文件传输助手」，再来选。</view>
+    </block>
+
+    <!-- 第二步：确认清单 -->
+    <block wx:if="{{aiStep === 'confirm'}}">
+      <view class="ai-tip">AI 整理结果如下，可改可删，确认无误再入库。</view>
+
+      <view class="ai-store-pick">
+        <text class="ai-pick-label">存入：</text>
+        <view class="ai-chips">
+          <view class="ai-chip {{aiSiteId===s.id?'on':''}}" wx:for="{{tree.sites}}" wx:key="id" wx:for-item="s" bindtap="setAiSite" data-id="{{s.id}}">{{s.name}}</view>
+        </view>
+      </view>
+      <view class="ai-store-pick" wx:if="{{aiStoreTabs.length}}">
+        <text class="ai-pick-label">分库：</text>
+        <view class="ai-chips">
+          <view class="ai-chip {{aiStoreId===st.id?'on':''}}" wx:for="{{aiStoreTabs}}" wx:key="id" wx:for-item="st" bindtap="setAiStore" data-id="{{st.id}}">{{st.name}}</view>
+        </view>
+      </view>
+
+      <view class="ai-items-head">物品 / 数量 / 规格</view>
+      <view class="ai-item-row" wx:for="{{aiItems}}" wx:key="index" wx:for-item="it">
+        <input class="form-input ai-ie-name" placeholder="名称" value="{{it.name}}" data-index="{{index}}" data-field="name" bindinput="setAiItemField"/>
+        <input class="form-input ai-ie-qty" placeholder="数量" type="number" value="{{it.qty}}" data-index="{{index}}" data-field="qty" bindinput="setAiItemField"/>
+        <input class="form-input ai-ie-spec" placeholder="规格" value="{{it.spec}}" data-index="{{index}}" data-field="spec" bindinput="setAiItemField"/>
+        <view class="ai-ie-del" catchtap="removeAiItemRow" data-index="{{index}}">×</view>
+      </view>
+      <view class="add-type-link" bindtap="addAiItemRow">+ 再加一项</view>
+
+      <view class="ai-btn-row">
+        <button class="ai-back-btn" bindtap="aiBackToInput">‹ 重新输入</button>
+        <button class="submit-btn ai-confirm-btn" bindtap="aiConfirmStockIn">确认入库</button>
+      </view>
+    </block>
+  </view>
+</view>
+
+<!-- ============ 库存：记录补给/消耗弹窗 ============ -->
+<view class="modal-mask" wx:if="{{showModal}}" bindtap="hideModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">记录物资变动</view>
+    <view class="form-row">
+      <text class="form-label">记录人</text>
+      <text class="form-value-readonly">{{myName || '未设置身份'}}</text>
+    </view>
+    <view class="form-row">
+      <text class="form-label">类型</text>
+      <view class="radio-group">
+        <view class="radio {{type=='in'?'active':''}}" bindtap="setType" data-val="in">补给 +</view>
+        <view class="radio {{type=='out'?'active':''}}" bindtap="setType" data-val="out">消耗 -</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">地方</text>
+      <view class="type-list">
+        <view class="type-tag {{formSiteId===s.id?'active':''}}"
+          wx:for="{{tree.sites}}" wx:key="id" wx:for-item="s"
+          bindtap="setFormSite" data-id="{{s.id}}">{{s.name}}</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">分库</text>
+      <view class="type-list">
+        <view class="type-tag {{formStoreId===st.id?'active':''}}"
+          wx:for="{{formStoreTabs}}" wx:key="id" wx:for-item="st"
+          bindtap="setFormStore" data-id="{{st.id}}">{{st.name}}</view>
+        <text class="store-empty-inline" wx:if="{{formStoreTabs.length === 0}}">该地方无分库</text>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">分类</text>
+      <view class="type-list">
+        <view class="type-tag {{category===item?'active':''}}"
+          wx:for="{{categories}}" wx:key="*this" wx:for-item="item"
+          bindtap="setCategory" data-val="{{item}}">{{item}}</view>
+      </view>
+    </view>
+    <view class="add-type-row" wx:if="{{showNewCategory}}">
+      <input class="form-input" placeholder="emoji" bindinput="setField" data-field="newCategoryIcon" value="{{newCategoryIcon}}" style="width:100rpx; margin-right:12rpx; flex:none;"/>
+      <input class="form-input" placeholder="分类名称" bindinput="setField" data-field="newCategoryName" value="{{newCategoryName}}" style="flex:1; margin-right:12rpx;"/>
+      <view class="confirm-type-btn" bindtap="submitNewCategory">确定</view>
+    </view>
+    <view class="add-type-link" bindtap="toggleNewCategory">{{showNewCategory ? '取消' : '+ 新增分类'}}</view>
+    <view class="form-row">
+      <text class="form-label">图标</text>
+      <input class="form-input" placeholder="粘贴 emoji，如 🥬" bindinput="setField" data-field="icon" value="{{icon}}" style="width:120rpx; flex:none;"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">物品名</text>
+      <input class="form-input" placeholder="如：大白菜" bindinput="setField" data-field="name" value="{{name}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">数量</text>
+      <input class="form-input" placeholder="如：3" type="number" bindinput="setField" data-field="qty" value="{{qty}}"/>
+    </view>
+    <button class="submit-btn" bindtap="submitRecord">确认记录</button>
+  </view>
+</view>
+
+<!-- 编辑物品弹窗 -->
+<view class="modal-mask" wx:if="{{showEditItemModal}}" bindtap="hideEditItemModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">编辑物品</view>
+    <view class="form-row">
+      <text class="form-label">图标</text>
+      <input class="form-input" placeholder="emoji" bindinput="setEditItemField" data-field="editItemIcon" value="{{editItemIcon}}" style="width:120rpx; flex:none;"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">实拍图</text>
+      <view class="photo-pick-wrap">
+        <block wx:if="{{editPhotoUrl}}">
+          <image class="photo-pick-thumb" src="{{editPhotoUrl}}" mode="aspectFill" bindtap="previewEditPhoto"/>
+          <view class="photo-pick-btn" bindtap="chooseItemPhoto">换一张</view>
+          <view class="photo-pick-btn del" bindtap="removeItemPhoto">删除</view>
+        </block>
+        <view class="photo-pick-btn add" wx:else bindtap="chooseItemPhoto">📷 拍照 / 选图</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">物品名</text>
+      <input class="form-input" bindinput="setEditItemField" data-field="editItemName" value="{{editItemName}}"/>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">分类</text>
+      <view class="type-list">
+        <view class="type-tag {{editItemCategory===item?'active':''}}"
+          wx:for="{{categories}}" wx:key="*this" wx:for-item="item"
+          bindtap="setEditItemCategory" data-val="{{item}}">{{item}}</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">地方</text>
+      <view class="type-list">
+        <view class="type-tag {{editSiteId===s.id?'active':''}}"
+          wx:for="{{tree.sites}}" wx:key="id" wx:for-item="s"
+          bindtap="setEditSite" data-id="{{s.id}}">{{s.name}}</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">分库</text>
+      <view class="type-list">
+        <view class="type-tag {{editStoreId===st.id?'active':''}}"
+          wx:for="{{editStoreTabs}}" wx:key="id" wx:for-item="st"
+          bindtap="setEditStore" data-id="{{st.id}}">{{st.name}}</view>
+        <text class="store-empty-inline" wx:if="{{editStoreTabs.length === 0}}">该地方无分库</text>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">预警值</text>
+      <input class="form-input" placeholder="库存低于此值显示警告，默认3" type="number"
+        bindinput="setEditItemField" data-field="editItemThreshold" value="{{editItemThreshold}}"/>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">领用方式</text>
+      <view class="type-list">
+        <view class="type-tag {{editConsumeMode==='instant'?'active':''}}" bindtap="setEditConsumeMode" data-val="instant">即时消耗</view>
+        <view class="type-tag {{editConsumeMode==='requisition'?'active':''}}" bindtap="setEditConsumeMode" data-val="requisition">领用免审</view>
+        <view class="type-tag {{editConsumeMode==='approval'?'active':''}}" bindtap="setEditConsumeMode" data-val="approval">领用需审批</view>
+      </view>
+    </view>
+    <view class="export-hint">即时消耗：可直接 +1/-1（如食材）；领用：走领料单出库；需审批：领用要主管批</view>
+    <button class="submit-btn" bindtap="submitEditItem">保存修改</button>
+  </view>
+</view>
+
+<!-- 长按数量弹窗 -->
+<view class="modal-mask" wx:if="{{showQtyModal}}" bindtap="hideQtyModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">「{{qtyModalName}}」变动</view>
+    <view class="form-row">
+      <text class="form-label">类型</text>
+      <view class="radio-group">
+        <view class="radio {{qtyModalType=='in'?'active':''}}" bindtap="setQtyModalType" data-val="in">补给 +</view>
+        <view class="radio {{qtyModalType=='out'?'active':''}}" bindtap="setQtyModalType" data-val="out">消耗 -</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">数量</text>
+      <input class="form-input" placeholder="如：3" type="number"
+        value="{{qtyModalQty}}" bindinput="setQtyModalQty" focus="{{showQtyModal}}"/>
+    </view>
+    <button class="submit-btn" bindtap="submitQty">确认</button>
+  </view>
+</view>
+
+<!-- ============ 采购：发起 / 重提弹窗 ============ -->
+<view class="modal-mask" wx:if="{{showPurchaseModal}}" bindtap="hidePurchaseModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">{{pEditId ? '修改后重新提交' : '发起采购申请'}}</view>
+    <view class="form-row">
+      <text class="form-label">给哪</text>
+      <text class="form-input" style="display:flex;align-items:center;">{{pSiteName || '未指定'}}</text>
+    </view>
+    <view class="form-row">
+      <text class="form-label">类型</text>
+      <view class="pkind-options">
+        <view class="pkind-option {{pKind==='general'?'active':''}}" bindtap="setPKind" data-val="general">📦 物资</view>
+        <view class="pkind-option {{pKind==='food'?'active':''}}" bindtap="setPKind" data-val="food">🍚 食材</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">用途</text>
+      <input class="form-input" placeholder="如：周末露营补给" bindinput="setPField" data-field="pTitle" value="{{pTitle}}"/>
+    </view>
+
+    <view class="pc-items-head">物品（名称 / 规格 / 数量）</view>
+    <view class="pc-item-edit" wx:for="{{pItems}}" wx:key="index" wx:for-item="it">
+      <input class="form-input pc-ie-name" placeholder="名称" data-index="{{index}}" data-field="name" bindinput="setPItemField" value="{{it.name}}"/>
+      <input class="form-input pc-ie-spec" placeholder="规格" data-index="{{index}}" data-field="spec" bindinput="setPItemField" value="{{it.spec}}"/>
+      <input class="form-input pc-ie-qty" placeholder="数量" type="number" data-index="{{index}}" data-field="qty" bindinput="setPItemField" value="{{it.qty}}"/>
+      <view class="pc-ie-del" catchtap="removePItemRow" data-index="{{index}}">×</view>
+      <text class="pc-ie-stock {{it.stockLow ? 'low' : ''}}" wx:if="{{it.stockChecked}}">{{it.stockHas ? ('库里现有 ' + it.stockQty + ' 件' + (it.stockLow ? '（偏低）' : '')) : '库里暂无同名物品'}}</text>
+    </view>
+    <view class="add-type-link" bindtap="addPItemRow">+ 再加一项</view>
+
+    <view class="form-row">
+      <text class="form-label">预算</text>
+      <input class="form-input" placeholder="可选，如 200" type="digit" bindinput="setPField" data-field="pBudget" value="{{pBudget}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" placeholder="可选" bindinput="setPField" data-field="pReason" value="{{pReason}}"/>
+    </view>
+    <button class="submit-btn" bindtap="submitPurchase">{{pEditId ? '重新提交' : '提交待审批'}}</button>
+  </view>
+</view>
+
+<!-- 采购：详情弹窗 -->
+<view class="modal-mask" wx:if="{{showPDetailModal}}" bindtap="hidePDetail">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">采购详情</view>
+    <view class="readonly-row"><text class="readonly-label">状态</text><text class="readonly-value">{{pDetail.statusLabel}}</text></view>
+    <view class="readonly-row"><text class="readonly-label">类型</text><text class="readonly-value">{{pDetail.isFood ? '🍚 食材' : '📦 物资'}}</text></view>
+    <view class="readonly-row" wx:if="{{pDetail.title}}"><text class="readonly-label">用途</text><text class="readonly-value">{{pDetail.title}}</text></view>
+    <view class="readonly-row"><text class="readonly-label">物品</text><text class="readonly-value">{{pDetail.itemSummary}}</text></view>
+    <view class="readonly-row" wx:if="{{pDetail.budget}}"><text class="readonly-label">预算</text><text class="readonly-value">¥{{pDetail.budget}}</text></view>
+    <view class="readonly-row" wx:if="{{pDetail.actualAmount}}"><text class="readonly-label">实付</text><text class="readonly-value">¥{{pDetail.actualAmount}}</text></view>
+    <view class="readonly-row" wx:if="{{pDetail.reason}}"><text class="readonly-label">备注</text><text class="readonly-value">{{pDetail.reason}}</text></view>
+
+    <view class="screenshot-row" wx:if="{{pDetail.receipts.length > 0}}">
+      <text class="screenshot-label">凭证</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item readonly" wx:for="{{pDetailReceiptUrls}}" wx:key="*this">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill"/>
+        </view>
+      </view>
+    </view>
+
+    <view class="pc-log-title" wx:if="{{pDetail.log.length > 0}}">流转记录</view>
+    <view class="pc-log-row" wx:for="{{pDetail.log}}" wx:key="index" wx:for-item="lg">
+      <text class="pc-log-text">{{lg.by}}：{{lg.text}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 采购：报账弹窗 -->
+<view class="modal-mask" wx:if="{{showReportModal}}" bindtap="hideReport">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">报账（上传付款凭证）</view>
+    <view class="readonly-row"><text class="readonly-label">物品</text><text class="readonly-value">{{reportItemsText}}</text></view>
+    <view class="form-row">
+      <text class="form-label">实付金额</text>
+      <input class="form-input" placeholder="如：238.50" type="digit" bindinput="setReportAmount" value="{{reportAmount}}"/>
+    </view>
+    <view class="screenshot-row">
+      <text class="screenshot-label">凭证</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item" wx:for="{{reportReceiptUrls}}" wx:key="*this">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewReportReceipt" data-index="{{index}}"/>
+          <view class="screenshot-remove" catchtap="removeReportReceipt" data-index="{{index}}">×</view>
+        </view>
+        <view class="screenshot-add" bindtap="chooseReportReceipts">+</view>
+      </view>
+    </view>
+    <view class="export-hint">小票/发票/转账截图皆可，可多张</view>
+    <button class="submit-btn" bindtap="submitReport">提交报账</button>
+  </view>
+</view>
+
+<!-- 采购：核验弹窗 -->
+<view class="modal-mask" wx:if="{{showVerifyModal}}" bindtap="hideVerify">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">核验票与物</view>
+    <view class="readonly-row"><text class="readonly-label">物品</text><text class="readonly-value">{{verifyItemsText}}</text></view>
+    <view class="screenshot-row" wx:if="{{verifyReceipts.length > 0}}">
+      <text class="screenshot-label">凭证</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item readonly" wx:for="{{verifyReceiptUrls}}" wx:key="*this">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewVerifyReceipt" data-index="{{index}}"/>
+        </view>
+      </view>
+    </view>
+    <view class="export-hint">核对实物与凭证是否一致；通过后进入入库确认。</view>
+    <view class="pc-verify-btns">
+      <button class="submit-btn pc-half danger-btn" bindtap="verifyReject">退回</button>
+      <button class="submit-btn pc-half" bindtap="verifyPass">核验通过</button>
+    </view>
+  </view>
+</view>
+
+<!-- 采购：入库确认弹窗 -->
+<view class="modal-mask" wx:if="{{showStockInModal}}" bindtap="hideStockIn">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">确认入库（逐项核对实收）</view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">入到</text>
+      <view class="type-list">
+        <view class="type-tag active">{{siSiteName || '指定地方'}}</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">分库</text>
+      <view class="type-list">
+        <view class="type-tag {{siStoreId===st.id?'active':''}}"
+          wx:for="{{siStoreTabs}}" wx:key="id" wx:for-item="st"
+          bindtap="setSiStore" data-id="{{st.id}}">{{st.name}}</view>
+        <text class="store-empty-inline" wx:if="{{siStoreTabs.length === 0}}">该地方无分库</text>
+      </view>
+    </view>
+    <view class="si-row" wx:for="{{stockInItems}}" wx:key="index" wx:for-item="it">
+      <view class="si-line">
+        <text class="si-name">{{it.name}}<text class="si-spec" wx:if="{{it.spec}}"> · {{it.spec}}</text></text>
+        <text class="si-new" wx:if="{{it.isNew}}">新物品</text>
+      </view>
+      <view class="si-line">
+        <text class="si-sub">应到 {{it.qty}}，实收</text>
+        <input class="form-input si-qty" type="number" data-index="{{index}}" bindinput="setStockInQty" value="{{it.receivedQty}}"/>
+      </view>
+      <view class="si-new-fields" wx:if="{{it.isNew}}">
+        <view class="type-list">
+          <view class="type-tag {{it.category===c?'active':''}}"
+            wx:for="{{categories}}" wx:key="*this" wx:for-item="c"
+            catchtap="setStockInCategory" data-index="{{index}}" data-val="{{c}}">{{c}}</view>
+        </view>
+        <input class="form-input si-icon" placeholder="图标 emoji" data-index="{{index}}" bindinput="setStockInIcon" value="{{it.icon}}"/>
+      </view>
+    </view>
+    <view class="export-hint">入库只更新库存，不动金库；完成后生成「待记账」交账房先生。</view>
+    <button class="submit-btn" bindtap="submitStockIn">确认入库</button>
+  </view>
+</view>
+
+<!-- 管理库房弹窗（增删改 地方/分库） -->
+<view class="modal-mask" wx:if="{{showManageModal}}" bindtap="hideManageModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">管理库房</view>
+    <view class="export-hint">地方下分库；有物品的不能删，先移走或清空</view>
+
+    <view class="mg-site" wx:for="{{tree.sites}}" wx:key="id" wx:for-item="s">
+      <view class="mg-site-head">
+        <text class="mg-site-name">{{s.name}}</text>
+        <view class="mg-ops">
+          <text class="mg-op" catchtap="addStoreAction" data-siteid="{{s.id}}">+分库</text>
+          <text class="mg-op" catchtap="renameNodeAction" data-kind="site" data-id="{{s.id}}" data-name="{{s.name}}">改名</text>
+          <text class="mg-op danger" catchtap="removeNodeAction" data-kind="site" data-id="{{s.id}}" data-name="{{s.name}}">删</text>
+        </view>
+      </view>
+      <view class="mg-store" wx:for="{{s.stores}}" wx:key="id" wx:for-item="st">
+        <text class="mg-store-name">— {{st.name}}</text>
+        <view class="mg-ops">
+          <text class="mg-op" catchtap="renameNodeAction" data-kind="store" data-id="{{st.id}}" data-name="{{st.name}}">改名</text>
+          <text class="mg-op danger" catchtap="removeNodeAction" data-kind="store" data-id="{{st.id}}" data-name="{{st.name}}">删</text>
+        </view>
+      </view>
+      <view class="mg-store-empty" wx:if="{{s.stores.length === 0}}">— 暂无分库</view>
+    </view>
+
+    <button class="submit-btn" bindtap="addSiteAction">+ 新增地方</button>
+  </view>
+</view>
+
+<!-- 发起领料弹窗 -->
+<view class="modal-mask" wx:if="{{showReqModal}}" bindtap="hideReqModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">发起领料</view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">地方</text>
+      <view class="type-list">
+        <view class="type-tag {{reqSiteId===s.id?'active':''}}"
+          wx:for="{{tree.sites}}" wx:key="id" wx:for-item="s"
+          bindtap="setReqSite" data-id="{{s.id}}">{{s.name}}</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">分库</text>
+      <view class="type-list">
+        <view class="type-tag {{reqStoreId===st.id?'active':''}}"
+          wx:for="{{reqStoreTabs}}" wx:key="id" wx:for-item="st"
+          bindtap="setReqStore" data-id="{{st.id}}">{{st.name}}</view>
+        <text class="store-empty-inline" wx:if="{{reqStoreTabs.length === 0}}">该地方无分库</text>
+      </view>
+    </view>
+
+    <view class="req-pick-head">给要领的物品填数量（只列领用类物品）</view>
+    <view class="req-empty" wx:if="{{reqPickItems.length === 0}}">这个分库没有可领用的物品（食材等即时消耗品请在库存页直接消耗）</view>
+    <view class="req-pick-row" wx:for="{{reqPickItems}}" wx:key="name" wx:for-item="it">
+      <view class="req-pick-info">
+        <text class="req-pick-name">{{it.name}}<text class="req-pick-spec" wx:if="{{it.spec}}"> · {{it.spec}}</text></text>
+        <text class="req-pick-avail">可领 {{it.avail}}{{it.consumeMode==='approval' ? ' · 需审批' : ''}}</text>
+      </view>
+      <input class="form-input req-pick-qty" type="number" placeholder="0" data-index="{{index}}" bindinput="setReqItemQty" value="{{it.input}}"/>
+    </view>
+
+    <view class="form-row" wx:if="{{reqPickItems.length > 0}}">
+      <text class="form-label">用途</text>
+      <input class="form-input" placeholder="可选，如：露营活动用" bindinput="setReqReason" value="{{reqReason}}"/>
+    </view>
+    <view class="export-hint" wx:if="{{reqPickItems.length > 0}}">含需审批物品则整单走主管审批；否则提交即出库</view>
+    <button class="submit-btn" wx:if="{{reqPickItems.length > 0}}" bindtap="submitRequisition">提交领料</button>
+  </view>
+</view>
+
+<!-- 报废报损弹窗（从库存长按发起） -->
+<view class="modal-mask" wx:if="{{showScrapModal}}" bindtap="hideScrapModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">报废报损</view>
+    <view class="form-row">
+      <text class="form-label">物品</text>
+      <text class="form-value-readonly">{{scrapItem.name}}（库存 {{scrapItem.avail}}）</text>
+    </view>
+    <view class="form-row">
+      <text class="form-label">报废数量</text>
+      <input class="form-input" type="number" placeholder="不超过库存" bindinput="setScrapQty" value="{{scrapQty}}"/>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">原因</text>
+      <view class="type-list">
+        <view class="type-tag {{scrapReason==='损坏'?'active':''}}" bindtap="setScrapReason" data-val="损坏">损坏</view>
+        <view class="type-tag {{scrapReason==='过期'?'active':''}}" bindtap="setScrapReason" data-val="过期">过期</view>
+        <view class="type-tag {{scrapReason==='丢失'?'active':''}}" bindtap="setScrapReason" data-val="丢失">丢失</view>
+        <view class="type-tag {{scrapReason==='其他'?'active':''}}" bindtap="setScrapReason" data-val="其他">其他</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">补充说明</text>
+      <input class="form-input" placeholder="可选" bindinput="setScrapReasonNote" value="{{scrapReasonNote}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">可回收</text>
+      <view class="recyclable-toggle {{scrapRecyclable?'on':''}}" bindtap="toggleScrapRecyclable">{{scrapRecyclable ? '可回收' : '不可回收'}}</view>
+    </view>
+    <view class="export-hint">提交后需主管批准才核销扣库存</view>
+    <button class="submit-btn" bindtap="submitScrap">提交报废</button>
+  </view>
+</view>
+
+<!-- 发起盘点弹窗 -->
+<view class="modal-mask" wx:if="{{showStkModal}}" bindtap="hideStkModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">发起盘点</view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">地方</text>
+      <view class="type-list">
+        <view class="type-tag {{stkSiteId===s.id?'active':''}}"
+          wx:for="{{tree.sites}}" wx:key="id" wx:for-item="s"
+          bindtap="setStkSite" data-id="{{s.id}}">{{s.name}}</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">分库</text>
+      <view class="type-list">
+        <view class="type-tag {{stkStoreId===st.id?'active':''}}"
+          wx:for="{{stkStoreTabs}}" wx:key="id" wx:for-item="st"
+          bindtap="setStkStore" data-id="{{st.id}}">{{st.name}}</view>
+        <text class="store-empty-inline" wx:if="{{stkStoreTabs.length === 0}}">该地方无分库</text>
+      </view>
+    </view>
+
+    <view class="req-pick-head">填实际数（账实一致的不用改）</view>
+    <view class="req-empty" wx:if="{{stkItems.length === 0}}">这个分库暂无物品</view>
+    <view class="req-pick-row" wx:for="{{stkItems}}" wx:key="id" wx:for-item="it">
+      <view class="req-pick-info">
+        <text class="req-pick-name">{{it.name}}</text>
+        <text class="req-pick-avail">账面 {{it.systemQty}}</text>
+      </view>
+      <input class="form-input req-pick-qty" type="number" data-index="{{index}}" bindinput="setStkActual" value="{{it.actual}}"/>
+    </view>
+
+    <view class="form-row form-row-wrap" wx:if="{{stkItems.length > 0}}">
+      <text class="form-label">现场照片</text>
+      <view class="stk-photo-wrap">
+        <view class="stk-photo-cell" wx:for="{{stkPhotos}}" wx:key="*this" wx:for-item="p" wx:for-index="pi">
+          <image class="stk-photo-thumb" src="{{p}}" mode="aspectFill" bindtap="previewStkLocal" data-index="{{pi}}"/>
+          <view class="stk-photo-del" catchtap="removeStkPhoto" data-index="{{pi}}">×</view>
+        </view>
+        <view class="stk-photo-add" wx:if="{{stkPhotos.length < 6}}" bindtap="chooseStkPhoto">📷</view>
+      </view>
+    </view>
+    <view class="export-hint" wx:if="{{stkItems.length > 0}}">提交后实际数为准，差异项自动修正账面并留痕；照片选填，最多6张</view>
+    <button class="submit-btn" wx:if="{{stkItems.length > 0}}" bindtap="submitStocktake">提交盘点</button>
+  </view>
+</view>
+
+<!-- ===== 联系人通讯录 ===== -->
+<view class="modal-mask" wx:if="{{showContactModal}}" bindtap="hideContacts">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">📇 常用联系人</view>
+    <view class="contact-toolbar">
+      <input class="contact-search" placeholder="搜姓名/标签/电话" bindinput="setContactKw" value="{{contactKw}}"/>
+      <view class="contact-add-btn" bindtap="showContactEditModal">+ 新增</view>
+    </view>
+    <view class="contact-tag-row" wx:if="{{contactTags.length > 0}}">
+      <view class="contact-tag-chip {{contactTagFilter===t?'active':''}}"
+            wx:for="{{contactTags}}" wx:key="*this" wx:for-item="t"
+            bindtap="setContactTag" data-val="{{t}}">{{t}}</view>
+    </view>
+    <view class="pending-empty" wx:if="{{contactsFiltered.length === 0}}">还没有联系人，点「+ 新增」记一个</view>
+    <scroll-view scroll-y style="max-height:56vh">
+      <view class="contact-card" wx:for="{{contactsFiltered}}" wx:key="_id" wx:for-item="c"
+            bindlongpress="showContactEditModal" data-id="{{c._id}}">
+        <view class="contact-main">
+          <view class="contact-name-line">
+            <text class="contact-name">{{c.name}}</text>
+            <text class="contact-tag" wx:if="{{c.tag}}">{{c.tag}}</text>
+          </view>
+          <text class="contact-note" wx:if="{{c.note}}">{{c.note}}</text>
+        </view>
+        <view class="contact-actions">
+          <view class="contact-act" wx:if="{{c.phone}}" catchtap="callContact" data-phone="{{c.phone}}">📞 {{c.phone}}</view>
+          <view class="contact-act wechat" wx:if="{{c.wechat}}" catchtap="copyContactWechat" data-wechat="{{c.wechat}}">💬 {{c.wechat}}</view>
+        </view>
+      </view>
+      <view class="contact-hint" wx:if="{{contactsFiltered.length > 0}}">点电话直接拨打 · 点微信号复制 · 长按编辑</view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 联系人编辑 -->
+<view class="modal-mask" wx:if="{{showContactEdit}}" bindtap="hideContactEdit">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">{{cEditId ? '编辑联系人' : '新增联系人'}}</view>
+    <view class="form-row">
+      <text class="form-label">称呼</text>
+      <input class="form-input" placeholder="如：菜市场王姐" bindinput="setCField" data-field="cName" value="{{cName}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">标签</text>
+      <input class="form-input" placeholder="如：买菜 / 建材 / 维修" bindinput="setCField" data-field="cTag" value="{{cTag}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">手机号</text>
+      <input class="form-input" type="number" placeholder="选填" bindinput="setCField" data-field="cPhone" value="{{cPhone}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">微信号</text>
+      <input class="form-input" placeholder="选填" bindinput="setCField" data-field="cWechat" value="{{cWechat}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" placeholder="如：只送到山脚，周一休" bindinput="setCField" data-field="cNote" value="{{cNote}}"/>
+    </view>
+    <button class="submit-btn" bindtap="submitContact">保存</button>
+    <view class="contact-del-btn" wx:if="{{cEditId}}" bindtap="deleteContact">删除该联系人</view>
+  </view>
+</view>

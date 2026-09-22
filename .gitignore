@@ -1,0 +1,28 @@
+# 微信开发者工具的个人配置
+project.private.config.json
+
+# 小程序本地运行配置
+miniprogram/config.local.js
+
+# 本地环境变量；只提交字段模板
+.env
+.env.*
+!.env.example
+
+# 依赖目录（云函数部署时安装）
+**/node_modules/
+
+# 日志与构建产物
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+coverage/
+
+# 编辑器与操作系统文件
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,589 @@
+.container {
+  padding: 20rpx 24rpx 120rpx;
+  background: #f5f5f0;
+  min-height: 100vh;
+}
+.add-btn-wrap { margin-bottom: 24rpx; }
+.add-btn {
+  background: #1a7a5e;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  border: none;
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin: 8rpx 0 16rpx;
+}
+.task-list { margin-bottom: 24rpx; }
+.task-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx 20rpx;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.task-card.done { opacity: 0.6; }
+.task-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.dot-open { background: #378ADD; }
+.dot-doing { background: #EF9F27; }
+.dot-done { background: #639922; }
+.task-info { flex: 1; }
+.task-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  display: block;
+}
+.task-meta {
+  font-size: 24rpx;
+  color: #888;
+  margin-top: 4rpx;
+  display: block;
+}
+.task-reward {
+  font-size: 24rpx;
+  color: #e67e22;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.done-reward { color: #639922; }
+
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+}
+.modal {
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx 32rpx 60rpx;
+  width: 100%;
+}
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 28rpx;
+}
+.form-row-wrap { align-items: flex-start; }
+.form-label {
+  font-size: 28rpx;
+  color: #555;
+  width: 100rpx;
+  flex-shrink: 0;
+}
+.form-input {
+  flex: 1;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  font-size: 28rpx;
+}
+.type-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  flex: 1;
+}
+.type-tag {
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #e0e0e0;
+  font-size: 24rpx;
+  color: #555;
+}
+.type-tag.active {
+  background: #1a7a5e;
+  color: #fff;
+  border-color: #1a7a5e;
+}
+.add-type {
+  color: #1a7a5e;
+  border-color: #1a7a5e;
+}
+
+.ai-box {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+.ai-btn {
+  flex: 1;
+  background: #f0faf6;
+  color: #1a7a5e;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  border: 1rpx solid #1a7a5e;
+  margin: 0;
+}
+.ai-hint {
+  font-size: 22rpx;
+  color: #aaa;
+}
+.ai-loading {
+  text-align: center;
+  color: #888;
+  font-size: 26rpx;
+  padding: 20rpx 0;
+  margin-bottom: 24rpx;
+}
+.ai-result {
+  background: #f0faf6;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+  gap: 16rpx;
+}
+.ai-result-label {
+  font-size: 24rpx;
+  color: #888;
+  flex: 1;
+}
+.ai-result-xp {
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #1a7a5e;
+}
+.ai-reask {
+  font-size: 22rpx;
+  color: #aaa;
+  text-decoration: underline;
+}
+.submit-btn {
+  background: #1a7a5e;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  margin-top: 8rpx;
+  border: none;
+}
+button[disabled] {
+  background: #ccc !important;
+  color: #fff !important;
+}
+.scoring { color: #aaa; font-size: 22rpx; }
+
+.add-type-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.confirm-type-btn {
+  background: #1a7a5e;
+  color: #fff;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  font-size: 26rpx;
+  flex-shrink: 0;
+}
+.add-type-link {
+  font-size: 24rpx;
+  color: #1a7a5e;
+  margin-bottom: 24rpx;
+  text-align: right;
+}
+.empty-sub {
+  text-align: center;
+  color: #ccc;
+  font-size: 24rpx;
+  padding: 20rpx 0;
+}
+.task-action-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8rpx;
+}
+.task-action-btn {
+  font-size: 22rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 999rpx;
+}
+.claim-btn { background: #e8f5f0; color: #1a7a5e; }
+.finish-btn { background: #e8f5f0; color: #1a7a5e; font-size: 24rpx; }
+.scoring { color: #aaa; font-size: 22rpx; }
+.task-preview {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  text-align: center;
+  margin-bottom: 24rpx;
+  padding: 20rpx;
+  background: #f5f5f0;
+  border-radius: 12rpx;
+}
+.finish-xp {
+  text-align: center;
+  color: #1a7a5e;
+  font-size: 28rpx;
+  margin-bottom: 24rpx;
+}
+.add-type-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.confirm-type-btn {
+  background: #1a7a5e;
+  color: #fff;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  font-size: 26rpx;
+  flex-shrink: 0;
+}
+.add-type-link {
+  font-size: 24rpx;
+  color: #1a7a5e;
+  margin-bottom: 24rpx;
+  text-align: right;
+}
+.form-row-wrap { align-items: flex-start; }
+.type-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  flex: 1;
+}
+.type-tag {
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #e0e0e0;
+  font-size: 24rpx;
+  color: #555;
+}
+.type-tag.active {
+  background: #1a7a5e;
+  color: #fff;
+  border-color: #1a7a5e;
+}
+.member-select-list { margin-bottom: 24rpx; }
+.member-select-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 12rpx;
+  border: 1rpx solid #e0e0e0;
+}
+.member-select-item.active {
+  border-color: #1a7a5e;
+  background: #f0faf6;
+}
+.member-select-icon { font-size: 32rpx; margin-right: 16rpx; }
+.member-select-name { font-size: 28rpx; font-weight: 500; color: #1a1a1a; }
+.member-select-role { font-size: 24rpx; color: #888; flex: 1; margin-left: 12rpx; }
+.member-select-check { font-size: 28rpx; color: #1a7a5e; font-weight: 500; }
+.finish-hint {
+  text-align: center;
+  font-size: 26rpx;
+  color: #1a7a5e;
+  margin: 16rpx 0 24rpx;
+}
+/* 任务详情弹窗 */
+.task-detail-modal {
+  max-height: 88vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.detail-meta {
+  font-size: 24rpx;
+  color: #888;
+  margin-bottom: 8rpx;
+  display: block;
+}
+.xp-meta {
+  color: #1a7a5e;
+  font-weight: 500;
+  margin-bottom: 24rpx;
+}
+.detail-section {
+  margin-bottom: 24rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+.detail-label {
+  font-size: 24rpx;
+  color: #555;
+  margin-bottom: 12rpx;
+}
+.owner-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+.owner-chip {
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  background: #f5f5f0;
+  font-size: 24rpx;
+  color: #555;
+}
+.owner-chip.finished {
+  background: #e8f5f0;
+  color: #1a7a5e;
+}
+.note-row {
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+.note-row:last-child { border-bottom: none; }
+.note-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4rpx;
+}
+.note-name { font-size: 24rpx; color: #1a1a1a; font-weight: 500; }
+.note-time { font-size: 20rpx; color: #aaa; }
+.note-text { font-size: 26rpx; color: #333; display: block; }
+.note-input-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+  align-items: center;
+}
+.note-input { flex: 1; }
+.note-send-btn {
+  background: #1a7a5e;
+  color: #fff;
+  padding: 14rpx 28rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+.detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+.detail-actions .submit-btn { margin-top: 0; }
+.unclaim-btn {
+  background: #f5f5f0 !important;
+  color: #888 !important;
+}
+.detail-hint {
+  font-size: 24rpx;
+  color: #888;
+  text-align: center;
+  padding: 16rpx 0;
+}
+.detail-hint.warn { color: #c0392b; }
+.sub-meta { color: #aaa; margin-top: 4rpx; }
+.submitted-btn { background: #bbb; color: #fff; }
+/* ============ 工作日报/状态机改造 · 新增样式 ============ */
+
+/* 新状态点 */
+.dot-submitted { background: #7F77DD; }
+.dot-onhold { background: #B4B2A9; }
+
+/* 标题角标（待确认数量）*/
+.title-badge {
+  display: inline-block;
+  min-width: 32rpx;
+  padding: 0 10rpx;
+  margin-left: 8rpx;
+  font-size: 22rpx;
+  line-height: 32rpx;
+  text-align: center;
+  color: #fff;
+  background: #7F77DD;
+  border-radius: 999rpx;
+}
+
+/* 卡片右侧新按钮 */
+.confirm-btn { background: #efeafe; color: #534AB7; }
+.unhold-btn { background: #f0f0eb; color: #5F5E5A; }
+
+/* 详情弹窗 · 次要/幽灵按钮 */
+.ghost-btn {
+  background: #f5f5f0 !important;
+  color: #5F5E5A !important;
+}
+
+/* 难度选择器 */
+.diff-picker { display: flex; gap: 12rpx; margin-bottom: 12rpx; }
+.diff-tag {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  font-size: 24rpx;
+  color: #888;
+  background: #f5f5f0;
+  border-radius: 12rpx;
+}
+.diff-tag.active { background: #efeafe; color: #534AB7; font-weight: 500; }
+
+/* 取消/重复 文字链 */
+.cancel-link-row { display: flex; justify-content: center; gap: 40rpx; padding: 8rpx 0; }
+.cancel-link { font-size: 24rpx; color: #c0392b; }
+
+/* AI 帮判按钮 */
+.ai-judge-row { margin: 8rpx 0 20rpx; }
+.ai-judge-btn {
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 26rpx;
+  color: #534AB7;
+  background: #efeafe;
+  border-radius: 12rpx;
+}
+.ai-judge-btn.judging { color: #888; background: #f0f0eb; }
+.ai-judge-result { margin-top: 10rpx; font-size: 24rpx; color: #888; text-align: center; }
+
+/* 难度标签（卡片上）*/
+.name-row { display: flex; align-items: center; gap: 10rpx; }
+.diff-badge {
+  flex-shrink: 0;
+  font-size: 18rpx;
+  line-height: 28rpx;
+  padding: 0 10rpx;
+  border-radius: 6rpx;
+  color: #fff;
+}
+.diff-high { background: #D9803E; }
+.diff-mid { background: #C7B26B; }
+.diff-low { background: #9CA88F; }
+
+/* 任务描述输入框 */
+.form-textarea {
+  width: 100%;
+  min-height: 72rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  padding: 16rpx;
+  background: #f7f7f2;
+  border-radius: 12rpx;
+  box-sizing: border-box;
+}
+
+/* 详情里的任务描述 */
+.detail-desc {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.6;
+  background: #f7f7f2;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin: 12rpx 0;
+}
+
+/* 交付清单 */
+.dv-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  padding: 12rpx 4rpx;
+  border-bottom: 1rpx solid #f0f0eb;
+}
+.dv-box { font-size: 32rpx; color: #639922; flex-shrink: 0; line-height: 1.4; }
+.dv-text { font-size: 26rpx; color: #333; line-height: 1.4; }
+.dv-item.done .dv-text { color: #aaa; text-decoration: line-through; }
+
+/* 截止日期选择器 */
+.deadline-picker {
+  font-size: 28rpx;
+  color: #333;
+  padding: 16rpx;
+  background: #f7f7f2;
+  border-radius: 12rpx;
+}
+.deadline-picker.empty { color: #aaa; }
+
+/* ============ 工时 + 强度 评分改造 · 新增样式 ============ */
+
+/* 卡片上的强度角标（替代原难度角标，复用色板）*/
+.int-badge {
+  flex-shrink: 0;
+  font-size: 18rpx;
+  line-height: 28rpx;
+  padding: 0 10rpx;
+  border-radius: 6rpx;
+  color: #fff;
+}
+.int-light { background: #9CA88F; }
+.int-mid   { background: #C7B26B; }
+.int-heavy { background: #D9803E; }
+
+/* 工时输入 */
+.hours-input-wrap { flex: 1; display: flex; align-items: center; gap: 12rpx; }
+.hours-input { flex: 1; }
+.hours-unit { font-size: 26rpx; color: #888; flex-shrink: 0; }
+
+/* 强度 5 档选择器 */
+.int-list { display: flex; flex-wrap: wrap; gap: 12rpx; flex: 1; }
+.int-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 96rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid #e0e0e0;
+  background: #fff;
+}
+.int-tag.active { background: #1a7a5e; border-color: #1a7a5e; }
+.int-tag.active .int-tag-name,
+.int-tag.active .int-tag-coef { color: #fff; }
+.int-tag-name { font-size: 24rpx; color: #555; }
+.int-tag-coef { font-size: 20rpx; color: #aaa; margin-top: 2rpx; }
+
+/* XP 实时预览 */
+.xp-preview {
+  font-size: 24rpx;
+  color: #888;
+  background: #f0faf6;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 24rpx;
+}
+.xp-preview-num { font-size: 32rpx; font-weight: 500; color: #1a7a5e; }
+
+/* 详情：改工时入口 + 面板 */
+.revise-entry { margin: 0 0 16rpx; }
+.revise-link { font-size: 24rpx; color: #1a7a5e; }
+.revise-panel {
+  background: #f7f7f2;
+  border-radius: 16rpx;
+  padding: 24rpx 20rpx 20rpx;
+  margin-bottom: 24rpx;
+}
+.revise-panel .form-row { margin-bottom: 20rpx; }
+.revise-panel .form-label { width: 80rpx; }
+.revise-btns { display: flex; gap: 16rpx; margin-top: 8rpx; }
+.revise-btn {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+}
+.revise-btn.cancel { background: #ececec; color: #666; }
+.revise-btn.save { background: #1a7a5e; color: #fff; }
+
+/* 变更记录 */
+.revise-log-row { padding: 12rpx 0; border-bottom: 1rpx solid #f0f0eb; }
+.revise-log-row:last-child { border-bottom: none; }
+.revise-log-main { font-size: 26rpx; color: #333; display: block; }
+.revise-log-sub { font-size: 22rpx; color: #aaa; display: block; margin-top: 4rpx; }

@@ -1,0 +1,320 @@
+<view class="container">
+  <view class="add-btn-wrap">
+    <button class="add-btn" bindtap="showAddModal">+ 发布任务</button>
+  </view>
+
+  <!-- 待确认（主管要处理的，置顶）-->
+  <view class="section-title">待确认 <text class="title-badge" wx:if="{{submitted.length > 0}}">{{submitted.length}}</text></view>
+  <view class="task-list">
+    <view class="task-card"
+      wx:for="{{submitted}}" wx:key="id"
+      bindtap="openTaskDetail" data-task="{{item}}">
+      <view class="task-dot dot-submitted"></view>
+      <view class="task-info">
+        <view class="name-row"><text class="task-name">{{item.name}}</text><text class="int-badge {{item.intensityClass}}" wx:if="{{item.intensityShort}}">{{item.intensityShort}}</text></view>
+        <text class="task-meta">{{item.siteName ? item.siteName + ' · ' : ''}}完成：{{item.ownersText}} · 等确认</text>
+        <text class="task-meta sub-meta" wx:if="{{item.noteCount > 0}}">💬 {{item.noteCount}} 条备注</text>
+      </view>
+      <view class="task-action-wrap">
+        <text class="task-reward">+{{item.xp}}xp</text>
+        <view class="task-action-btn confirm-btn" wx:if="{{item.iCanManage}}">待你确认</view>
+        <view class="task-action-btn submitted-btn" wx:else>待确认</view>
+      </view>
+    </view>
+    <view class="empty-sub" wx:if="{{submitted.length === 0}}">暂无待确认任务</view>
+  </view>
+
+  <!-- 进行中 -->
+  <view class="section-title">进行中</view>
+  <view class="task-list">
+    <view class="task-card"
+      wx:for="{{doing}}" wx:key="id"
+      bindtap="openTaskDetail" data-task="{{item}}"
+      bindlongpress="longPressTask" data-task="{{item}}" data-status="doing">
+      <view class="task-dot dot-doing"></view>
+      <view class="task-info">
+        <view class="name-row"><text class="task-name">{{item.name}}</text><text class="int-badge {{item.intensityClass}}" wx:if="{{item.intensityShort}}">{{item.intensityShort}}</text></view>
+        <text class="task-meta">{{item.siteName ? item.siteName + ' · ' : ''}}{{item.type}} · 认领：{{item.ownersText}} · {{item.finishedCount}}/{{item.ownerCount}} 已完成</text>
+        <text class="task-meta sub-meta" wx:if="{{item.noteCount > 0}}">💬 {{item.noteCount}} 条备注</text>
+      </view>
+      <view class="task-action-wrap">
+        <text class="task-reward">+{{item.xp}}xp</text>
+        <view class="task-action-btn finish-btn" wx:if="{{item.isMine && !item.isMyFinished}}">我完成</view>
+        <view class="task-action-btn submitted-btn" wx:elif="{{item.isMine && item.isMyFinished}}">已提交</view>
+        <view class="task-action-btn claim-btn" wx:else>+认领</view>
+      </view>
+    </view>
+    <view class="empty-sub" wx:if="{{doing.length === 0}}">暂无进行中任务</view>
+  </view>
+
+  <!-- 待认领 -->
+  <view class="section-title">待认领</view>
+  <view class="task-list">
+    <view class="task-card"
+      wx:for="{{open}}" wx:key="id"
+      bindtap="openTaskDetail" data-task="{{item}}"
+      bindlongpress="longPressTask" data-task="{{item}}" data-status="open">
+      <view class="task-dot dot-open"></view>
+      <view class="task-info">
+        <view class="name-row"><text class="task-name">{{item.name}}</text><text class="int-badge {{item.intensityClass}}" wx:if="{{item.intensityShort}}">{{item.intensityShort}}</text></view>
+        <text class="task-meta">{{item.siteName ? item.siteName + ' · ' : ''}}{{item.type}} · 发布：{{item.publisherName || '未知'}} · {{item.publishTime}}</text>
+        <text class="task-meta sub-meta" wx:if="{{item.noteCount > 0}}">💬 {{item.noteCount}} 条备注</text>
+      </view>
+      <view class="task-action-wrap">
+        <text class="task-reward {{item.xp ? '' : 'scoring'}}">{{item.xp ? '+'+item.xp+'xp' : 'AI评分中'}}</text>
+        <view class="task-action-btn claim-btn">认领</view>
+      </view>
+    </view>
+    <view class="empty-sub" wx:if="{{open.length === 0}}">暂无待认领任务</view>
+  </view>
+
+  <!-- 搁置 -->
+  <view class="section-title" wx:if="{{onhold.length > 0}}">搁置中</view>
+  <view class="task-list" wx:if="{{onhold.length > 0}}">
+    <view class="task-card"
+      wx:for="{{onhold}}" wx:key="id"
+      bindtap="openTaskDetail" data-task="{{item}}">
+      <view class="task-dot dot-onhold"></view>
+      <view class="task-info">
+        <view class="name-row"><text class="task-name">{{item.name}}</text><text class="int-badge {{item.intensityClass}}" wx:if="{{item.intensityShort}}">{{item.intensityShort}}</text></view>
+        <text class="task-meta">{{item.siteName ? item.siteName + ' · ' : ''}}卡住：{{item.onholdNote || '未说明'}}</text>
+      </view>
+      <view class="task-action-wrap">
+        <view class="task-action-btn unhold-btn" wx:if="{{item.iCanManage}}">解除</view>
+        <view class="task-action-btn submitted-btn" wx:else>搁置中</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 本周已完成 -->
+  <view class="section-title">本周已完成</view>
+  <view class="task-list">
+    <view class="task-card done"
+      wx:for="{{done}}" wx:key="id"
+      bindtap="openTaskDetail" data-task="{{item}}">
+      <view class="task-dot dot-done"></view>
+      <view class="task-info">
+        <view class="name-row"><text class="task-name">{{item.name}}</text><text class="int-badge {{item.intensityClass}}" wx:if="{{item.intensityShort}}">{{item.intensityShort}}</text></view>
+        <text class="task-meta">完成：{{item.ownersText}} · {{item.finishDate}}{{item.autoClosed ? ' · 超时自动' : ''}}</text>
+        <text class="task-meta sub-meta" wx:if="{{item.noteCount > 0}}">💬 {{item.noteCount}} 条备注</text>
+      </view>
+      <text class="task-reward done-reward">{{item.ownerCount > 1 ? '+'+item.xpPerOwner+'xp/人' : '+'+item.xp+'xp'}} ✓</text>
+    </view>
+    <view class="empty-sub" wx:if="{{done.length === 0}}">本周暂无完成任务</view>
+  </view>
+</view>
+
+<!-- 发布任务弹窗 -->
+<view class="modal-mask" wx:if="{{showModal}}" bindtap="hideModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">发布新任务</view>
+    <view class="form-row">
+      <text class="form-label">任务名</text>
+      <input class="form-input" placeholder="如：去镇上采购食材" bindinput="setField" data-field="newName" value="{{newName}}"/>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">任务描述</text>
+      <textarea class="form-textarea" placeholder="说清楚要干什么、干到什么程度算完（选填，但写清楚 AI 给的交付清单更准）" bindinput="setField" data-field="newDesc" value="{{newDesc}}" maxlength="300" auto-height></textarea>
+    </view>
+    <view class="form-row">
+      <text class="form-label">截止日期</text>
+      <picker mode="date" value="{{newDeadline}}" bindchange="setDeadline">
+        <view class="deadline-picker {{newDeadline ? '' : 'empty'}}">{{newDeadline || '点击选择（必填）'}}</view>
+      </picker>
+    </view>
+
+    <!-- AI 帮判：填完任务名点它，回填类型/工时/强度/交付清单供确认 -->
+    <view class="ai-judge-row">
+      <view class="ai-judge-btn {{aiJudging ? 'judging' : ''}}" bindtap="aiJudge">
+        {{aiJudging ? 'AI 判断中…' : '🤖 AI 帮判（类型·工时·强度）'}}
+      </view>
+    </view>
+
+    <!-- 工时 + 强度（AI 帮判后出现，可改；XP = 工时 × 强度系数，实时算）-->
+    <block wx:if="{{aiJudged}}">
+      <view class="form-row">
+        <text class="form-label">预计工时</text>
+        <view class="hours-input-wrap">
+          <input class="form-input hours-input" type="digit" bindinput="setNewHours" value="{{newHours}}" placeholder="小时，可小数"/>
+          <text class="hours-unit">小时</text>
+        </view>
+      </view>
+      <view class="form-row form-row-wrap">
+        <text class="form-label">强度</text>
+        <view class="int-list">
+          <view class="int-tag {{newIntensity===item.v?'active':''}}"
+            wx:for="{{intensityOptions}}" wx:key="v" wx:for-item="item"
+            bindtap="selectNewIntensity" data-v="{{item.v}}">
+            <text class="int-tag-name">{{item.name}}</text>
+            <text class="int-tag-coef">×{{item.coef}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="xp-preview">本任务经验 = 工时 × 强度系数 = <text class="xp-preview-num">{{newXpPreview}}</text> xp{{newDeliverables.length ? ' · 交付清单 ' + newDeliverables.length + ' 条' : ''}}</view>
+    </block>
+
+    <!-- 选地方 -->
+    <view class="form-row form-row-wrap">
+      <text class="form-label">给哪个地方</text>
+      <view class="type-list">
+        <view class="type-tag {{newSiteId===''?'active':''}}" bindtap="selectSite" data-id="">🌐 通用</view>
+        <view class="type-tag {{newSiteId===item.id?'active':''}}" wx:for="{{sites}}" wx:key="id" wx:for-item="item" bindtap="selectSite" data-id="{{item.id}}">{{item.name}}</view>
+      </view>
+    </view>
+
+    <!-- 任务类型（AI 帮判后自动高亮预选，可改）-->
+    <view class="form-row form-row-wrap">
+      <text class="form-label">任务类型</text>
+      <view class="type-list">
+        <view class="type-tag {{newType===item.name?'active':''}}" wx:for="{{taskTypes}}" wx:key="name" wx:for-item="item" bindtap="selectType" data-name="{{item.name}}">{{item.icon}} {{item.name}}</view>
+      </view>
+    </view>
+    <view class="add-type-row" wx:if="{{showNewType}}">
+      <input class="form-input" placeholder="emoji" bindinput="setField" data-field="newTypeIcon" value="{{newTypeIcon}}" style="width:120rpx; margin-right:12rpx;"/>
+      <input class="form-input" placeholder="类型名称" bindinput="setField" data-field="newTypeName" value="{{newTypeName}}" style="flex:1; margin-right:12rpx;"/>
+      <view class="confirm-type-btn" bindtap="submitNewType">确定</view>
+    </view>
+    <view class="add-type-link" bindtap="toggleNewType">{{showNewType ? '取消' : '+ 新增类型'}}</view>
+
+    <button class="submit-btn" bindtap="submitTask" disabled="{{!newName || !newType || !newDeadline}}">
+      {{aiJudged ? '确认发布' : '发布任务（发布后 AI 评分）'}}
+    </button>
+  </view>
+</view>
+
+<!-- 任务详情弹窗 -->
+<view class="modal-mask" wx:if="{{showTaskDetail}}" bindtap="closeTaskDetail">
+  <view class="modal task-detail-modal" catchtap="noop">
+    <view class="modal-title">{{detailTask.name}}</view>
+
+    <view class="detail-meta">{{detailTask.siteName ? detailTask.siteName + ' · ' : ''}}{{detailTask.type}} · 发布：{{detailTask.publisherName || '未知'}} · {{detailTask.publishTime}}</view>
+    <view class="detail-desc" wx:if="{{detailTask.desc}}">{{detailTask.desc}}</view>
+    <view class="detail-meta xp-meta">
+      <text wx:if="{{detailTask.hours}}">工时 {{detailTask.hours}}h · 强度 {{detailTask.intensityName}} · </text>
+      <text wx:if="{{detailTask.status === 'closed'}}">每人 +{{detailTask.xpPerOwner}}xp（共{{detailTask.ownerCount}}人，总{{detailTask.xp}}xp）</text>
+      <text wx:elif="{{detailTask.ownerCount > 1}}">+{{detailTask.xp}}xp（{{detailTask.ownerCount}}人平分，每人约 +{{detailTask.xpPerOwner}}xp）</text>
+      <text wx:else>+{{detailTask.xp}}xp</text>
+    </view>
+
+    <!-- 改工时/强度：认领前发布人/主管可改(不留痕)；认领后仅主管、必填原因(留痕) -->
+    <view class="revise-entry" wx:if="{{detailTask.status !== 'closed' && (detailTask.iCanManage || (detailTask.status === 'open' && detailTask.isPublisher)) && !showRevise}}">
+      <text class="revise-link" bindtap="openRevise">✎ 改工时 / 强度</text>
+    </view>
+    <view class="revise-panel" wx:if="{{showRevise}}">
+      <view class="form-row">
+        <text class="form-label">工时</text>
+        <view class="hours-input-wrap">
+          <input class="form-input hours-input" type="digit" bindinput="setReviseHours" value="{{reviseHours}}" placeholder="小时"/>
+          <text class="hours-unit">小时</text>
+        </view>
+      </view>
+      <view class="form-row form-row-wrap">
+        <text class="form-label">强度</text>
+        <view class="int-list">
+          <view class="int-tag {{reviseIntensity===item.v?'active':''}}" wx:for="{{intensityOptions}}" wx:key="v" wx:for-item="item" bindtap="selectReviseIntensity" data-v="{{item.v}}">
+            <text class="int-tag-name">{{item.name}}</text>
+            <text class="int-tag-coef">×{{item.coef}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="form-row form-row-wrap" wx:if="{{detailTask.status !== 'open'}}">
+        <text class="form-label">原因</text>
+        <input class="form-input" bindinput="setReviseReason" value="{{reviseReason}}" placeholder="认领后修改必填，会记入变更记录"/>
+      </view>
+      <view class="xp-preview">新经验 = <text class="xp-preview-num">{{reviseXpPreview}}</text> xp</view>
+      <view class="revise-btns">
+        <view class="revise-btn cancel" bindtap="closeRevise">取消</view>
+        <view class="revise-btn save" bindtap="submitRevise">保存</view>
+      </view>
+    </view>
+
+    <view class="detail-section" wx:if="{{detailTask.ownerCount > 0}}">
+      <view class="detail-label">认领人 · {{detailTask.finishedCount}}/{{detailTask.ownerCount}} 已完成</view>
+      <view class="owner-chip-list">
+        <view class="owner-chip {{item.finished ? 'finished' : ''}}"
+          wx:for="{{detailTask.ownerChips}}" wx:key="name" wx:for-item="item">
+          <text>{{item.name}}{{item.finished ? ' ✓' : ''}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 搁置说明 -->
+    <view class="detail-section" wx:if="{{detailTask.status === 'onhold'}}">
+      <view class="detail-label">搁置原因</view>
+      <text class="note-text">{{detailTask.onholdNote || '未说明'}}（{{detailTask.onholdBy}}）</text>
+    </view>
+
+    <!-- 交付清单（认领人可勾选；其他人只看；这是核对的依据）-->
+    <view class="detail-section" wx:if="{{detailTask.dvTotal > 0}}">
+      <view class="detail-label">交付清单 · {{detailTask.dvDone}}/{{detailTask.dvTotal}}{{detailTask.isMine ? '（点一条勾掉）' : ''}}</view>
+      <view class="dv-item {{item.done ? 'done' : ''}}"
+        wx:for="{{detailTask.deliverables}}" wx:key="index" wx:for-item="item"
+        bindtap="toggleDeliverable" data-index="{{item.index}}">
+        <text class="dv-box">{{item.done ? '☑' : '☐'}}</text>
+        <text class="dv-text">{{item.text}}</text>
+      </view>
+    </view>
+
+    <!-- 工时/强度 变更记录（认领后改的留痕）-->
+    <view class="detail-section" wx:if="{{detailTask.reviseCount > 0}}">
+      <view class="detail-label">工时/强度变更记录 · {{detailTask.reviseCount}} 条</view>
+      <view class="revise-log-row" wx:for="{{detailTask.reviseLog}}" wx:key="idx" wx:for-item="item">
+        <text class="revise-log-main">{{item.fieldLabel}}由 {{item.fromText}} 改为 {{item.toText}}</text>
+        <text class="revise-log-sub">原因：{{item.reason || '—'}} · {{item.operator}} · {{item.timeStr}}</text>
+      </view>
+    </view>
+
+    <view class="detail-section">
+      <view class="detail-label">备注 · {{detailTask.noteCount}} 条</view>
+      <view class="empty-sub" wx:if="{{detailTask.noteCount === 0}}">还没有备注</view>
+      <view class="note-row" wx:for="{{detailTask.notes}}" wx:key="timeStr" wx:for-item="item">
+        <view class="note-head">
+          <text class="note-name">{{item.name}}</text>
+          <text class="note-time">{{item.timeStr}}</text>
+        </view>
+        <text class="note-text">{{item.text}}</text>
+      </view>
+      <view class="note-input-row" wx:if="{{myName}}">
+        <input class="form-input note-input" placeholder="加一条备注..."
+          value="{{detailNoteText}}" bindinput="setDetailNoteText"
+          confirm-type="send" bindconfirm="submitNote"/>
+        <view class="note-send-btn" bindtap="submitNote">发送</view>
+      </view>
+      <view class="detail-hint warn" wx:else>请先到「营员」页加入村落，再发送备注</view>
+    </view>
+
+    <!-- 认领人操作（待认领/进行中）-->
+    <view class="detail-actions" wx:if="{{detailTask.status === 'open' || detailTask.status === 'doing'}}">
+      <button class="submit-btn" wx:if="{{!detailTask.isMine && myName}}" bindtap="claimByMe">我来认领</button>
+      <button class="submit-btn" wx:if="{{detailTask.isMine && !detailTask.isMyFinished}}" bindtap="markMyPartDone">我完成了</button>
+      <button class="submit-btn ghost-btn" wx:if="{{detailTask.isMine && !detailTask.isMyFinished && detailTask.status === 'doing'}}" bindtap="holdByMe">遇阻搁置</button>
+      <button class="submit-btn unclaim-btn" wx:if="{{detailTask.isMine && !detailTask.isMyFinished}}" bindtap="unclaimByMe">取消认领</button>
+      <view class="detail-hint" wx:if="{{detailTask.isMine && detailTask.isMyFinished}}">你已提交，等其他认领人完成</view>
+    </view>
+
+    <!-- 搁置中：主管解除 -->
+    <view class="detail-actions" wx:if="{{detailTask.status === 'onhold' && detailTask.iCanManage}}">
+      <button class="submit-btn" bindtap="unholdTask">解除搁置（恢复进行中）</button>
+    </view>
+
+    <!-- 待确认：主管确认 / 打回 -->
+    <view class="detail-actions" wx:if="{{detailTask.status === 'submitted' && detailTask.iCanManage}}">
+      <button class="submit-btn" bindtap="confirmTask">确认完成</button>
+      <button class="submit-btn ghost-btn" bindtap="reopenTask">打回重做</button>
+    </view>
+    <view class="detail-hint" wx:if="{{detailTask.status === 'submitted' && !detailTask.iCanManage}}">等该地方主管确认</view>
+
+    <!-- 任意未关闭：主管可取消/标重复 -->
+    <view class="detail-actions" wx:if="{{detailTask.status !== 'closed' && detailTask.iCanManage}}">
+      <view class="cancel-link-row">
+        <text class="cancel-link" bindtap="cancelTask" data-reason="cancelled">取消任务</text>
+        <text class="cancel-link" bindtap="cancelTask" data-reason="duplicate">标记重复</text>
+      </view>
+    </view>
+
+    <!-- 已完成：主管可打回 -->
+    <view class="detail-actions" wx:if="{{detailTask.status === 'closed' && detailTask.closeReason === 'completed' && detailTask.iCanManage}}">
+      <button class="submit-btn ghost-btn" bindtap="reopenTask">打回重做（线下发现没干好）</button>
+    </view>
+  </view>
+</view>

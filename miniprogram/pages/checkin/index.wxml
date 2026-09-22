@@ -1,0 +1,44 @@
+<view class="page">
+  <view class="head">
+    <view class="head-title">每日打卡</view>
+    <view class="head-close" bindtap="close">完成</view>
+  </view>
+  <view class="intro">确认你前一天都做了什么。打卡后，当天到期的头衔日常经验才会发放；漏打的日子会标红提醒。</view>
+
+  <view wx:if="{{loading}}" class="empty-tip">加载中…</view>
+
+  <view wx:elif="{{!name}}" class="empty-tip">还没加入村落，无法打卡。</view>
+
+  <block wx:else>
+    <view class="summary" wx:if="{{pendingCount > 0}}">还有 {{pendingCount}} 天待打卡</view>
+    <view class="summary all-done" wx:else>最近 7 天都打卡了 👍</view>
+
+    <view class="day-card {{d.checkedIn ? 'done' : (d.missed ? 'missed' : 'todo')}}" wx:for="{{days}}" wx:key="date" wx:for-item="d">
+      <view class="day-head">
+        <view class="day-label">
+          <text class="day-name">{{d.label}}</text>
+          <text class="day-badge done-badge" wx:if="{{d.checkedIn}}">已打卡</text>
+          <text class="day-badge missed-badge" wx:elif="{{d.missed}}">漏打卡</text>
+          <text class="day-badge todo-badge" wx:else>待打卡</text>
+        </view>
+        <view class="ck-btn" wx:if="{{!d.checkedIn}}" bindtap="doCheckIn" data-date="{{d.date}}">打卡</view>
+      </view>
+
+      <view class="missed-tip" wx:if="{{d.missed}}">这天没有打卡，补打即可补发头衔经验</view>
+
+      <!-- 当天完成的任务（复盘用）-->
+      <view class="sec" wx:if="{{d.completedCount > 0}}">
+        <text class="sec-label">完成的任务</text>
+        <view class="line" wx:for="{{d.completed}}" wx:key="name" wx:for-item="c">· {{c.name}}</view>
+      </view>
+
+      <!-- 当天到期的头衔日常 -->
+      <view class="sec" wx:if="{{d.duties.length > 0}}">
+        <text class="sec-label">头衔日常（打卡发 +{{d.dutyXp}}xp）</text>
+        <view class="line duty" wx:for="{{d.duties}}" wx:key="titleName" wx:for-item="du">· {{du.titleName}} +{{du.xp}}xp</view>
+      </view>
+
+      <view class="sec empty-day" wx:if="{{d.empty}}">这天没有记录的任务，打卡只记出勤</view>
+    </view>
+  </block>
+</view>

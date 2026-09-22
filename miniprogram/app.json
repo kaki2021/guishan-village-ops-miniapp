@@ -1,0 +1,30 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/warehouse/index",
+    "pages/tasks/index",
+    "pages/members/index",
+    "pages/achievements/index",
+    "pages/personal/index",
+    "pages/checkin/index"
+  ],
+  "tabBar": {
+    "color": "#888",
+    "selectedColor": "#1a7a5e",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "总览" },
+      { "pagePath": "pages/warehouse/index", "text": "仓库" },
+      { "pagePath": "pages/tasks/index", "text": "任务" },
+      { "pagePath": "pages/members/index", "text": "营员" },
+      { "pagePath": "pages/achievements/index", "text": "成就" }
+    ]
+  },
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1a7a5e",
+    "navigationBarTextStyle": "white"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

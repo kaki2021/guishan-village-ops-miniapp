@@ -1,0 +1,933 @@
+<view class="container">
+  <view class="header">
+    <view class="header-left">
+      <text class="camp-name">归山村落</text>
+      <text class="camp-day">{{campDay}} 天 · {{memberCount}} 名营员</text>
+    </view>
+    <view class="level-badge">
+      <text class="level-text">Lv.{{level}} {{levelName}}</text>
+    </view>
+  </view>
+
+  <view class="stat-grid">
+    <view class="stat-card" bindtap="showLedger">
+      <text class="stat-label">💰 金库余额</text>
+      <text class="stat-val">¥{{balanceDisplay}}</text>
+      <text class="stat-sub" wx:if="{{pendingReimburseDisplay !== '0.00'}}" style="color:#b45309;">可用 ¥{{availableDisplay}} · 待报销 ¥{{pendingReimburseDisplay}}</text>
+      <text class="stat-sub" style="color:#1a7a5e;">查看流水</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-label">📦 仓库物资</text>
+      <text class="stat-val">{{resourceCount}} 种</text>
+      <text class="stat-sub">点仓库查看详情</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-label">📋 进行中任务</text>
+      <text class="stat-val">{{doingTasks}} 个</text>
+      <text class="stat-sub">点任务查看详情</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-label">⭐ 团队经验</text>
+      <text class="stat-val">{{totalXp}}</text>
+      <text class="stat-sub">距 Lv.{{level+1}} 还差 {{nextLevelXp - totalXp}}</text>
+    </view>
+  </view>
+
+  <view class="ai-entry-row">
+    <view class="ai-entry-btn" bindtap="openConsult">🤖 问问 AI</view>
+    <view class="ai-entry-btn report" bindtap="openReport">📊 生成周报</view>
+  </view>
+
+  <!-- 昨日工作总结（凌晨自动生成，全村可见）-->
+  <view class="digest-card" wx:if="{{digest}}" bindtap="toggleDigestDetail">
+    <view class="digest-head">
+      <text class="digest-title">📋 昨日工作小结 · {{digest.date}}</text>
+      <text class="digest-stat">{{digest.validPeople}} 人出工 · {{digest.taskCount}} 项</text>
+    </view>
+    <text class="digest-summary">{{digest.summary}}</text>
+    <view class="digest-detail" wx:if="{{showDigestDetail && digest.details.length > 0}}">
+      <view class="digest-d-row" wx:for="{{digest.details}}" wx:key="name">
+        <text class="digest-d-name">{{item.name}}</text>
+        <text class="digest-d-tasks">{{item.tasks}}</text>
+      </view>
+    </view>
+    <text class="digest-more" wx:if="{{digest.details.length > 0}}">{{showDigestDetail ? '收起' : '展开看谁做了什么'}}</text>
+  </view>
+
+  <view class="section-title">升级进度</view>
+  <view class="progress-card">
+    <view class="progress-label">
+      <text>Lv.{{level}} {{levelName}}</text>
+      <text>{{totalXp}} / {{nextLevelXp}} xp</text>
+    </view>
+    <view class="progress-bar">
+      <view class="progress-fill" style="width:{{xpPercent}}%"></view>
+    </view>
+  </view>
+
+  <view class="section-title">📅 营地日程</view>
+  <view class="schedule-card">
+    <view class="week-nav">
+      <view class="week-nav-btn" bindtap="prevWeek">‹</view>
+      <text class="week-nav-label">{{weekLabel}}</text>
+      <view class="week-nav-btn" bindtap="nextWeek">›</view>
+    </view>
+    <view class="week-strip">
+      <view class="week-day-wrap"
+        wx:for="{{weekDays}}" wx:key="date" wx:for-item="item"
+        bindtap="selectDay" data-date="{{item.date}}">
+        <text class="week-day-name">{{item.dayName}}</text>
+        <view class="week-day-circle {{item.isSelected ? 'selected' : (item.isToday ? 'today' : '')}}">
+          <text class="week-day-num">{{item.dayNum}}</text>
+        </view>
+        <view class="week-dot {{item.hasItems ? 'has-items' : ''}} {{item.isSelected ? 'dot-white' : ''}}"></view>
+      </view>
+    </view>
+    <view class="schedule-divider"></view>
+
+    <!-- 当天进行中的任务（自动，按紧迫度排序标色，只读，点击去任务页处理）-->
+    <view class="schedule-date-label" wx:if="{{dateTasks.length > 0}}">✅ 当天任务</view>
+    <view class="sch-task urgency-{{item.urgency}}" wx:for="{{dateTasks}}" wx:key="_id" wx:for-item="item">
+      <view class="sch-task-main">
+        <text class="sch-task-name">{{item.name}}</text>
+        <text class="sch-task-meta">{{item.statusLabel}} · {{item.ownersText}}</text>
+      </view>
+      <text class="sch-task-due">{{item.dueLabel}}</text>
+    </view>
+
+    <view class="schedule-date-label">📌 {{selectedDateLabel}} 的事项</view>
+    <view class="schedule-empty" wx:if="{{scheduleItems.length === 0}}">暂无事项</view>
+    <view class="schedule-item {{item.done ? 'item-done' : ''}}"
+      wx:for="{{scheduleItems}}" wx:key="_id" wx:for-item="item">
+      <view class="schedule-check {{item.done ? 'checked' : ''}}"
+        bindtap="toggleScheduleItem" data-id="{{item._id}}" data-done="{{item.done}}">
+        <text wx:if="{{item.done}}" class="check-icon">✓</text>
+      </view>
+      <view class="schedule-item-body"
+        bindtap="tapScheduleItem"
+        data-id="{{item._id}}"
+        data-text="{{item.text}}"
+        data-operator="{{item.operatorName}}">
+        <text class="schedule-text">{{item.text}}</text>
+        <text class="schedule-operator" wx:if="{{item.operatorName}}">{{item.operatorName}} 添加</text>
+      </view>
+      <text class="schedule-delete" bindtap="deleteScheduleItem" data-id="{{item._id}}">×</text>
+    </view>
+    <view class="schedule-add-row">
+      <input class="schedule-input" placeholder="添加事项..."
+        value="{{newScheduleText}}"
+        bindinput="setScheduleText"
+        confirm-type="done"
+        bindconfirm="addScheduleItem"/>
+      <view class="schedule-add-btn" bindtap="addScheduleItem">+</view>
+    </view>
+  </view>
+
+  <view class="section-title">最近动态</view>
+  <view class="log-card">
+    <view wx:if="{{logs.length === 0}}" class="empty-log">暂无动态，快去记录第一条吧</view>
+    <view class="log-row" wx:for="{{logs}}" wx:key="_id">
+      <view class="badge {{item.badgeClass}}">{{item.badgeText}}</view>
+      <text class="log-text">{{item.text}}</text>
+      <text class="log-meta">{{item.timeStr}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 收支详情弹窗 -->
+<view class="modal-mask" wx:if="{{showLedgerModal}}" bindtap="hideLedgerModal">
+  <view class="modal ledger-modal" catchtap="noop">
+    <view class="ledger-title-row">
+      <text class="modal-title ledger-title">金库流水 · {{ledgerTimeLabel}}</text>
+      <view class="cl-entry-link" wx:if="{{isTreasurer || iAmSupervisor}}" bindtap="openContribLedger">📒 出资台账</view>
+      <view class="export-link" bindtap="showExportModal">📤 导出账目</view>
+    </view>
+
+    <!-- 账房先生横幅 -->
+    <view class="treasurer-banner" wx:if="{{treasurer}}">
+      <text class="treasurer-text">账房先生：{{treasurer.name}}{{isTreasurer ? ' (你)' : ''}}</text>
+      <view class="treasurer-action" wx:if="{{isTreasurer}}" bindtap="openPickTreasurer">转交</view>
+    </view>
+    <view class="treasurer-banner warn" wx:else>
+      <text class="treasurer-text">⚠️ 还未指定账房先生，金库已锁定，需先指定才能记账</text>
+      <view class="treasurer-action" bindtap="openPickTreasurer">指定</view>
+    </view>
+
+    <!-- 账房待办：待记账 / 待报销 / 待还款 三合一入口 -->
+    <view class="pending-entry" wx:if="{{isTreasurer && treasurerTodoCount > 0}}" bindtap="openTreasurerTodo">
+      <text class="pending-entry-text">🧾 账房待办 {{treasurerTodoCount}} 笔</text>
+      <text class="pending-entry-arrow">去处理 ›</text>
+    </view>
+
+    <!-- 借款合计：村里长期欠大家多少，常驻显示不让它消失在视野外 -->
+    <view class="loan-bar" wx:if="{{loanTotal > 0}}" bindtap="openLoanLedger">
+      <text class="loan-bar-text">🤝 村里借款合计 ¥{{loanTotalDisplay}}</text>
+      <text class="loan-bar-arrow">看台账 ›</text>
+    </view>
+
+    <view class="ledger-time-row">
+      <view class="ledger-time-tag {{ledgerTimeFilter==='all'?'active':''}}" bindtap="setLedgerTimeFilter" data-val="all">全部</view>
+      <view class="ledger-time-tag {{ledgerTimeFilter==='thisWeek'?'active':''}}" bindtap="setLedgerTimeFilter" data-val="thisWeek">本周</view>
+      <view class="ledger-time-tag {{ledgerTimeFilter==='thisMonth'?'active':''}}" bindtap="setLedgerTimeFilter" data-val="thisMonth">本月</view>
+      <view class="ledger-time-tag {{ledgerTimeFilter==='lastMonth'?'active':''}}" bindtap="setLedgerTimeFilter" data-val="lastMonth">上月</view>
+      <view class="ledger-time-tag {{ledgerTimeFilter==='custom'?'active':''}}" bindtap="setLedgerTimeFilter" data-val="custom">自定义</view>
+    </view>
+
+    <view class="ledger-custom-row" wx:if="{{ledgerTimeFilter==='custom'}}">
+      <picker mode="date" value="{{ledgerCustomStart}}" bindchange="setLedgerCustomStart">
+        <view class="ledger-custom-picker">{{ledgerCustomStart || '开始日期'}}</view>
+      </picker>
+      <text class="ledger-custom-sep">至</text>
+      <picker mode="date" value="{{ledgerCustomEnd}}" bindchange="setLedgerCustomEnd">
+        <view class="ledger-custom-picker">{{ledgerCustomEnd || '结束日期'}}</view>
+      </picker>
+    </view>
+
+    <view class="ledger-summary">
+      <view class="ledger-summary-item">
+        <text class="ledger-summary-label">收入</text>
+        <text class="ledger-summary-in">+¥{{ledgerInTotal}}</text>
+      </view>
+      <view class="ledger-summary-divider"></view>
+      <view class="ledger-summary-item">
+        <text class="ledger-summary-label">支出</text>
+        <text class="ledger-summary-out">-¥{{ledgerOutTotal}}</text>
+      </view>
+      <view class="ledger-summary-divider"></view>
+      <view class="ledger-summary-item">
+        <text class="ledger-summary-label">净额</text>
+        <text class="{{ledgerNetIsPositive ? 'ledger-summary-in' : 'ledger-summary-out'}}">{{ledgerNetIsPositive ? '+' : '-'}}¥{{ledgerNetTotal}}</text>
+      </view>
+    </view>
+
+    <view class="ledger-filter-row">
+      <view class="ledger-filter-tag {{ledgerTypeFilter==='all'?'active':''}}" bindtap="setLedgerTypeFilter" data-val="all">全部</view>
+      <view class="ledger-filter-tag {{ledgerTypeFilter==='in'?'active-in':''}}" bindtap="setLedgerTypeFilter" data-val="in">收入</view>
+      <view class="ledger-filter-tag {{ledgerTypeFilter==='out'?'active-out':''}}" bindtap="setLedgerTypeFilter" data-val="out">支出</view>
+    </view>
+    <scroll-view class="ledger-person-row" scroll-x>
+      <view class="ledger-person-tag {{ledgerPersonFilter===item?'active':''}}"
+        wx:for="{{ledgerPersons}}" wx:key="*this" wx:for-item="item"
+        bindtap="setLedgerPersonFilter" data-val="{{item}}">
+        {{item === 'all' ? '所有人' : item}}
+      </view>
+    </scroll-view>
+    <scroll-view class="ledger-list" scroll-y>
+      <view class="ledger-empty" wx:if="{{ledgerFiltered.length === 0}}">该时段暂无记录</view>
+      <view class="ledger-row"
+        wx:for="{{ledgerFiltered}}" wx:key="_id" wx:for-item="item"
+        bindtap="tapLedgerRow" data-item="{{item}}">
+        <!-- 有票据只标记，不在列表加载图；点行进详情再看，更稳更轻 -->
+        <view class="ledger-recpt" wx:if="{{item.hasScreenshot || item.hasFiles}}">🧾</view>
+        <view class="ledger-row-left">
+          <text class="ledger-row-note">{{item.note || '无备注'}}</text>
+          <text class="ledger-row-meta">{{item.payerDisplay}} · {{item.dateStr}}</text>
+        </view>
+        <view class="ledger-row-right">
+          <text class="ledger-row-amount {{item.type==='in'?'amount-in':'amount-out'}}">{{item.type==='in'?'+':'-'}}¥{{item.amountDisplay}}</text>
+          <text class="ledger-row-hint">{{isTreasurer ? '轻触编辑' : '轻触详情'}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <!-- 主管：待审的转出资申请 -->
+    <view class="conv-review-block" wx:if="{{iAmSupervisorConv && convReviews.length > 0}}">
+      <view class="conv-review-title">待审 · 垫付转借款（需全体主管通过）</view>
+      <view class="conv-review-card" wx:for="{{convReviews}}" wx:key="_id" wx:for-item="c">
+        <view class="conv-review-info">
+          <text class="conv-review-name">{{c.applicantName}} 申请转借款</text>
+          <text class="conv-review-amt">¥{{c.total}} · {{c.itemCount}}笔 · 已通过 {{c.approvedCount}}/{{c.approverCount}}</text>
+        </view>
+        <view class="conv-review-btns">
+          <view class="conv-btn pass" catchtap="reviewConv" data-id="{{c._id}}" data-agree="{{true}}">通过</view>
+          <view class="conv-btn deny" catchtap="reviewConv" data-id="{{c._id}}" data-agree="{{false}}">驳回</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="btn-row">
+      <button class="submit-btn amber" bindtap="openReimbSubmit">＋ 我垫付了</button>
+      <button class="submit-btn ghost-btn" bindtap="openMyReimb">我的垫付{{myUnsettledCount ? ' '+myUnsettledCount : ''}}</button>
+    </view>
+    <view class="btn-row" wx:if="{{isTreasurer}}">
+      <button class="submit-btn half" bindtap="showAddMoney">记录收支</button>
+      <button class="submit-btn half blue" bindtap="recordContribution">录出资/冲正</button>
+    </view>
+  </view>
+</view>
+
+<!-- 只读详情弹窗（非账房先生看流水详情） -->
+<view class="modal-mask" wx:if="{{showReadOnlyModal}}" bindtap="hideReadOnlyModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">流水详情</view>
+    <view class="readonly-row">
+      <text class="readonly-label">类型</text>
+      <text class="readonly-value {{readOnlyTx.type==='in' ? 'amount-in' : 'amount-out'}}">{{readOnlyTx.type === 'in' ? '收入 +' : '支出 -'}}</text>
+    </view>
+    <view class="readonly-row">
+      <text class="readonly-label">金额</text>
+      <text class="readonly-value {{readOnlyTx.type==='in' ? 'amount-in' : 'amount-out'}}">{{readOnlyTx.type === 'in' ? '+' : '-'}}¥{{readOnlyTx.amountDisplay}}</text>
+    </view>
+    <view class="readonly-row">
+      <text class="readonly-label">备注</text>
+      <text class="readonly-value">{{readOnlyTx.note || '无'}}</text>
+    </view>
+    <view class="readonly-row">
+      <text class="readonly-label">记录人</text>
+      <text class="readonly-value">{{readOnlyTx.operatorName || '未知'}}</text>
+    </view>
+    <view class="readonly-row">
+      <text class="readonly-label">时间</text>
+      <text class="readonly-value">{{readOnlyTx.dateStr}}</text>
+    </view>
+    <view class="screenshot-row" wx:if="{{readOnlyTx.hasScreenshot || readOnlyTx.hasFiles}}">
+      <text class="screenshot-label">截图 / 文件</text>
+      <view class="screenshot-picker" wx:if="{{readOnlyTx.hasScreenshot}}">
+        <view class="screenshot-item readonly" wx:for="{{readOnlyTx.imgUrls}}" wx:key="index">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewReadOnlyShot" data-index="{{index}}" />
+        </view>
+      </view>
+      <view class="file-picker" wx:if="{{readOnlyTx.hasFiles}}">
+        <view class="file-chip" wx:for="{{readOnlyTx.fileShots}}" wx:key="fileID" wx:for-item="f" bindtap="openFileAttachment" data-fileid="{{f.fileID}}">
+          <text class="file-chip-name">📄 {{f.name}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="readonly-hint">只有账房先生可编辑/删除</view>
+  </view>
+</view>
+
+<!-- 指定/转交账房先生弹窗 -->
+<view class="modal-mask" wx:if="{{showPickTreasurerModal}}" bindtap="hidePickTreasurerModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">{{treasurer ? '转交账房先生' : '指定账房先生'}}</view>
+    <view class="export-hint">只能从已加入村落的营员中选择</view>
+    <view class="treasurer-pick-list">
+      <view class="treasurer-pick-item"
+        wx:for="{{pickTreasurerCandidates}}" wx:key="openid" wx:for-item="item"
+        bindtap="confirmPickTreasurer" data-openid="{{item.openid}}" data-name="{{item.name}}">
+        <text class="treasurer-pick-icon">{{item.icon || '🌿'}}</text>
+        <view class="treasurer-pick-info">
+          <text class="treasurer-pick-name">{{item.name}}</text>
+          <text class="treasurer-pick-role">{{item.role}}</text>
+        </view>
+        <text class="treasurer-pick-current" wx:if="{{treasurer && treasurer.openid === item.openid}}">现任</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 编辑收支弹窗（仅账房先生可进入） -->
+<view class="modal-mask" wx:if="{{showEditLedgerModal}}" bindtap="hideEditLedgerModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">编辑收支记录</view>
+    <view class="form-row">
+      <text class="form-label">类型</text>
+      <view class="radio-group">
+        <view class="radio {{editLedgerType=='in'?'active':''}}" bindtap="setEditLedgerType" data-val="in">收入 +</view>
+        <view class="radio {{editLedgerType=='out'?'active':''}}" bindtap="setEditLedgerType" data-val="out">支出 -</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">金额</text>
+      <input class="form-input" placeholder="如：238.50" type="digit"
+        value="{{editLedgerAmount}}" bindinput="setEditLedgerField" data-field="editLedgerAmount"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" placeholder="如：采购食材"
+        value="{{editLedgerNote}}" bindinput="setEditLedgerField" data-field="editLedgerNote"/>
+    </view>
+    <view class="screenshot-row">
+      <text class="screenshot-label">截图 / 文件</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item" wx:for="{{editLedgerShotUrls}}" wx:key="index">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewEditLedgerScreenshot" data-index="{{index}}" />
+          <view class="screenshot-remove" catchtap="removeEditLedgerScreenshot" data-index="{{index}}">×</view>
+        </view>
+        <view class="screenshot-add" bindtap="chooseEditLedgerAttachment">+</view>
+      </view>
+      <view class="file-picker">
+        <view class="file-chip" wx:for="{{editLedgerFiles}}" wx:key="fileID" wx:for-item="f">
+          <text class="file-chip-name">📄 {{f.name}}</text>
+          <view class="file-chip-remove" catchtap="removeEditLedgerFile" data-index="{{index}}">×</view>
+        </view>
+      </view>
+    </view>
+    <button class="submit-btn" bindtap="submitEditLedger">保存修改</button>
+  </view>
+</view>
+
+<!-- 记录收支弹窗（任何人都能用） -->
+<view class="modal-mask" wx:if="{{showMoneyModal}}" bindtap="hideMoneyModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">记录收支</view>
+    <view class="form-row">
+      <text class="form-label">记录人</text>
+      <text class="form-value-readonly">{{myName || '未设置身份'}}</text>
+    </view>
+    <view class="form-row">
+      <text class="form-label">类型</text>
+      <view class="radio-group">
+        <view class="radio {{moneyType=='in'?'active':''}}" bindtap="setMoneyType" data-val="in">收入 +</view>
+        <view class="radio {{moneyType=='out'?'active':''}}" bindtap="setMoneyType" data-val="out">支出 -</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">金额</text>
+      <input class="form-input" placeholder="如：238.50" type="digit" bindinput="setMoneyField" data-field="moneyAmount" value="{{moneyAmount}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" placeholder="如：采购食材" bindinput="setMoneyField" data-field="moneyNote" value="{{moneyNote}}"/>
+    </view>
+    <view class="screenshot-row">
+      <text class="screenshot-label">截图 / 文件（可选）</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item" wx:for="{{moneyScreenshots}}" wx:key="*this">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewMoneyScreenshot" data-index="{{index}}" />
+          <view class="screenshot-remove" catchtap="removeMoneyScreenshot" data-index="{{index}}">×</view>
+        </view>
+        <view class="screenshot-add" bindtap="chooseMoneyAttachment">+</view>
+      </view>
+      <view class="file-picker">
+        <view class="file-chip" wx:for="{{moneyFiles}}" wx:key="fileID" wx:for-item="f">
+          <text class="file-chip-name">📄 {{f.name}}</text>
+          <view class="file-chip-remove" catchtap="removeMoneyFile" data-index="{{index}}">×</view>
+        </view>
+      </view>
+    </view>
+    <button class="submit-btn" bindtap="submitMoney">确认记录</button>
+  </view>
+</view>
+
+<!-- 出资台账弹窗（账房先生/主管可看金额） -->
+<view class="modal-mask" wx:if="{{showContribLedgerModal}}" bindtap="hideContribLedger">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">出资台账</view>
+    <view class="cl-empty" wx:if="{{contribGroups.length === 0}}">还没有出资记录</view>
+    <scroll-view scroll-y style="max-height:60vh">
+      <view class="cl-person" wx:for="{{contribGroups}}" wx:key="openid" wx:for-item="g">
+        <view class="cl-row" bindtap="toggleContribDetail" data-index="{{index}}">
+          <text class="cl-name">{{g.name}}</text>
+          <text class="cl-total">¥{{g.totalDisplay}}</text>
+          <text class="cl-arrow">{{g.expanded ? '⌄' : '›'}}</text>
+        </view>
+        <view class="cl-detail" wx:if="{{g.expanded}}">
+          <view class="cl-line" wx:for="{{g.entries}}" wx:key="index" wx:for-item="en">
+            <text class="cl-line-note">{{en.isReverse ? '冲正' : '出资'}}{{en.note ? ' · ' + en.note : ''}} · {{en.dateStr}}</text>
+            <text class="cl-line-amt {{en.isReverse ? 'cl-neg' : 'cl-pos'}}">{{en.isReverse ? '-' : '+'}}¥{{en.amountDisplay}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 录出资 / 冲正弹窗（账房先生；和记录收支一致，可传图/文件） -->
+<view class="modal-mask" wx:if="{{showContribModal}}" bindtap="hideContribModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">录出资 / 冲正</view>
+    <view class="form-row">
+      <text class="form-label">类型</text>
+      <view class="radio-group">
+        <view class="radio {{!contribIsReverse?'active':''}}" bindtap="setContribReverse" data-val="no">录出资 +</view>
+        <view class="radio {{contribIsReverse?'active':''}}" bindtap="setContribReverse" data-val="yes">冲正 -</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">出资人</text>
+      <view class="form-input" bindtap="pickContribPerson" style="color:{{contribName ? '#1a1a1a' : '#bbb'}}">{{contribName || '点此选择'}}</view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">金额</text>
+      <input class="form-input" placeholder="如：6000" type="digit" bindinput="setContribField" data-field="contribAmount" value="{{contribAmount}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" placeholder="如：现金 / 转账" bindinput="setContribField" data-field="contribNote" value="{{contribNote}}"/>
+    </view>
+    <view class="screenshot-row">
+      <text class="screenshot-label">截图 / 文件（可选）</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item" wx:for="{{contribScreenshots}}" wx:key="*this">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewContribScreenshot" data-index="{{index}}" />
+          <view class="screenshot-remove" catchtap="removeContribScreenshot" data-index="{{index}}">×</view>
+        </view>
+        <view class="screenshot-add" bindtap="chooseContribAttachment">+</view>
+      </view>
+      <view class="file-picker">
+        <view class="file-chip" wx:for="{{contribFiles}}" wx:key="fileID" wx:for-item="f">
+          <text class="file-chip-name">📄 {{f.name}}</text>
+          <view class="file-chip-remove" catchtap="removeContribFile" data-index="{{index}}">×</view>
+        </view>
+      </view>
+    </view>
+    <button class="submit-btn" bindtap="submitContribution">确认</button>
+  </view>
+</view>
+
+<!-- 导出弹窗 -->
+<view class="modal-mask" wx:if="{{showExportModal}}" bindtap="hideExportModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">导出账目到 Excel</view>
+    <view class="form-row">
+      <text class="form-label">内容</text>
+      <picker mode="selector" range="{{exportViewOptions}}" value="{{exportViewIndex}}" bindchange="setExportView">
+        <view class="date-picker-display">{{exportViewLabel}} ▾</view>
+      </picker>
+    </view>
+    <view class="export-hint">{{exportViewHint}}</view>
+    <view class="form-row">
+      <text class="form-label">时间</text>
+      <view class="radio-group">
+        <view class="radio {{exportRange==='all'?'active':''}}" bindtap="setExportRange" data-val="all">项目至今</view>
+        <view class="radio {{exportRange==='thisMonth'?'active':''}}" bindtap="setExportRange" data-val="thisMonth">本月</view>
+        <view class="radio {{exportRange==='lastMonth'?'active':''}}" bindtap="setExportRange" data-val="lastMonth">上月</view>
+        <view class="radio {{exportRange==='custom'?'active':''}}" bindtap="setExportRange" data-val="custom">自定义</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">开始</text>
+      <picker mode="date" value="{{exportStartDate}}" bindchange="setExportStartDate">
+        <view class="date-picker-display">{{exportStartDate || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="form-label">结束</text>
+      <picker mode="date" value="{{exportEndDate}}" bindchange="setExportEndDate">
+        <view class="date-picker-display">{{exportEndDate || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="export-preview" wx:if="{{exportMode!=='transactions'}}">费用数据将在服务端跨流水、垫付、采购和长期借款统一汇总并自动去重</view>
+    <view class="export-preview" wx:else>预计导出 <text class="export-count">{{exportPreviewCount}}</text> 条流水</view>
+    <button class="submit-btn" bindtap="confirmExport" disabled="{{exportingNow || (exportMode==='transactions' && exportPreviewCount === 0)}}">
+      {{exportingNow ? '生成中...' : '生成 Excel'}}
+    </button>
+  </view>
+</view>
+
+<!-- 编辑日程弹窗 -->
+<view class="modal-mask" wx:if="{{showEditModal}}" bindtap="hideEditModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">修改事项</view>
+    <view class="form-row">
+      <input class="form-input" value="{{editingText}}" bindinput="setEditingText" focus="{{showEditModal}}"/>
+    </view>
+    <button class="submit-btn" bindtap="submitEditSchedule">保存修改</button>
+  </view>
+</view>
+
+<!-- 账房待办：三合一（待记账采购 / 待报销垫付 / 待还借款） -->
+<view class="modal-mask" wx:if="{{showTreasurerTodo}}" bindtap="hideTreasurerTodo">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">账房待办</view>
+    <view class="tt-tabs">
+      <view class="tt-tab {{ttTab==='record'?'active':''}}" bindtap="setTtTab" data-val="record">待记账 {{pendingRecords.length}}</view>
+      <view class="tt-tab {{ttTab==='reimb'?'active':''}}" bindtap="setTtTab" data-val="reimb">待报销 {{reimbPending.length}}</view>
+      <view class="tt-tab {{ttTab==='loan'?'active':''}}" bindtap="setTtTab" data-val="loan">待还款 {{loanGroups.length}}</view>
+    </view>
+
+    <!-- 待记账采购 -->
+    <block wx:if="{{ttTab==='record'}}">
+      <view class="pending-empty" wx:if="{{pendingRecords.length === 0}}">没有待记账的采购了 🎉</view>
+      <view class="tt-jump" wx:else bindtap="openPendingModal">共 {{pendingRecords.length}} 笔待记账 · 去处理 ›</view>
+    </block>
+
+    <!-- 待报销垫付 -->
+    <block wx:if="{{ttTab==='reimb'}}">
+      <view class="pending-empty" wx:if="{{reimbPending.length === 0}}">没有待报销的垫付了 🎉</view>
+      <view class="tt-jump" wx:else bindtap="openReimbPending">共 {{reimbPending.length}} 笔 · ¥{{reimbPendingTotal}} · 去处理 ›</view>
+    </block>
+
+    <!-- 待还借款 -->
+    <block wx:if="{{ttTab==='loan'}}">
+      <view class="pending-empty" wx:if="{{loanGroups.length === 0}}">村里目前没有借款 🎉</view>
+      <view class="tt-hint" wx:else>转为借款的钱，账房有钱时在这里还。还款会从金库出账。</view>
+      <view class="tt-loan-row" wx:for="{{loanGroups}}" wx:key="openid" wx:for-item="g">
+        <view class="tt-loan-info">
+          <text class="tt-loan-name">{{g.name}}</text>
+          <text class="tt-loan-amt">村里欠 ¥{{g.totalDisplay}}</text>
+        </view>
+        <view class="tt-loan-btn" catchtap="openRepay" data-name="{{g.name}}" data-total="{{g.totalDisplay}}">还款</view>
+      </view>
+    </block>
+  </view>
+</view>
+
+<!-- 还借款弹窗 -->
+<view class="modal-mask" wx:if="{{showRepayModal}}" bindtap="hideRepay">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">还借款</view>
+    <view class="form-row">
+      <text class="form-label">还给</text>
+      <text class="form-value-readonly">{{repayName}}（村里欠 ¥{{repayOwed}}）</text>
+    </view>
+    <view class="form-row">
+      <text class="form-label">金额</text>
+      <input class="form-input" type="digit" placeholder="本次还多少" bindinput="setRepayField" data-field="repayAmount" value="{{repayAmount}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">备注</text>
+      <input class="form-input" placeholder="如：微信转账（选填）" bindinput="setRepayField" data-field="repayNote" value="{{repayNote}}"/>
+    </view>
+    <view class="reimb-tip">确认后：金库记一笔支出 ¥{{repayAmount || '0'}}，借款台账相应减少。</view>
+    <button class="submit-btn" bindtap="submitRepay">确认还款</button>
+  </view>
+</view>
+
+<!-- 借款台账（全员可看自己的；账房/主管看全部） -->
+<view class="modal-mask" wx:if="{{showLoanLedger}}" bindtap="hideLoanLedger">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">借款台账</view>
+    <view class="tt-hint">股本人人固定相等，这里记的是村里额外欠大家的钱（垫付转来的），不影响股份。</view>
+    <view class="loan-total-bar">
+      <text class="loan-total-label">村里借款合计</text>
+      <text class="loan-total-amt">¥{{loanTotalDisplay}}</text>
+    </view>
+    <view class="cl-empty" wx:if="{{loanGroups.length === 0}}">目前没有借款记录</view>
+    <scroll-view scroll-y style="max-height:56vh">
+      <view class="cl-person" wx:for="{{loanGroups}}" wx:key="openid" wx:for-item="g">
+        <view class="cl-row" bindtap="toggleLoanDetail" data-index="{{index}}">
+          <text class="cl-name">{{g.name}}</text>
+          <text class="cl-total">¥{{g.totalDisplay}}</text>
+          <text class="cl-arrow">{{g.expanded ? '⌄' : '›'}}</text>
+        </view>
+        <view class="cl-detail" wx:if="{{g.expanded}}">
+          <view class="cl-line" wx:for="{{g.entries}}" wx:key="index" wx:for-item="en">
+            <text class="cl-line-note">{{en.note || '借款'}} · {{en.dateStr}}</text>
+            <text class="cl-line-amt {{en.isRepay ? 'cl-neg' : 'cl-pos'}}">{{en.isRepay ? '-' : '+'}}¥{{en.amountDisplay}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 待记账弹窗（账房先生处理采购单记账） -->
+<view class="modal-mask" wx:if="{{showPendingModal}}" bindtap="hidePendingModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">待记账采购</view>
+    <view class="pending-empty" wx:if="{{pendingRecords.length === 0}}">没有待记账的采购了 🎉</view>
+    <view class="pending-card" wx:for="{{pendingRecords}}" wx:key="_id" wx:for-item="p">
+      <view class="pending-head">
+        <text class="pending-title">{{p.title}}</text>
+        <text class="pending-amount">¥{{p.amountDisplay}}</text>
+      </view>
+      <text class="pending-sub">{{p.itemSummary}}</text>
+      <text class="pending-sub">采购人 {{p.buyerName || '—'}}</text>
+      <view class="pending-receipts" wx:if="{{p.receiptUrls.length > 0}}" catchtap="previewPendingReceipt" data-shots="{{p.receiptUrls}}">
+        <image class="pending-thumb" wx:for="{{p.receiptUrls}}" wx:key="*this" wx:for-item="s" src="{{s}}" mode="aspectFill"/>
+        <text class="pending-receipts-hint">点看凭证</text>
+      </view>
+      <view class="file-picker" wx:if="{{p.receiptFiles.length > 0}}">
+        <view class="file-chip" wx:for="{{p.receiptFiles}}" wx:key="fileID" wx:for-item="f" catchtap="openFileAttachment" data-fileid="{{f.fileID}}">
+          <text class="file-chip-name">📄 {{f.name}}</text>
+        </view>
+      </view>
+      <view class="pending-actions">
+        <view class="pending-btn primary" catchtap="recordExpense" data-item="{{p}}">记为支出</view>
+        <view class="pending-btn ghost" catchtap="recordDonation" data-item="{{p}}">记为捐赠</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 我垫付了：登记弹窗（全员） -->
+<view class="modal-mask" wx:if="{{showReimbSubmitModal}}" bindtap="hideReimbSubmit">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">我垫付了</view>
+    <view class="form-row">
+      <text class="form-label">垫付人</text>
+      <text class="form-value-readonly">{{myName || '未设置身份'}}</text>
+    </view>
+    <view class="form-row">
+      <text class="form-label">金额</text>
+      <input class="form-input" placeholder="你垫了多少，如 200" type="digit" bindinput="setReimbField" data-field="reimbAmount" value="{{reimbAmount}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">用途</text>
+      <input class="form-input" placeholder="买了啥 / 干啥用的" bindinput="setReimbField" data-field="reimbNote" value="{{reimbNote}}"/>
+    </view>
+    <view class="screenshot-row">
+      <text class="screenshot-label">垫付凭证（小票 / 转账截图）</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item" wx:for="{{reimbScreenshots}}" wx:key="*this">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewReimbScreenshot" data-index="{{index}}" />
+          <view class="screenshot-remove" catchtap="removeReimbScreenshot" data-index="{{index}}">×</view>
+        </view>
+        <view class="screenshot-add" bindtap="chooseReimbAttachment">+</view>
+      </view>
+      <view class="file-picker">
+        <view class="file-chip" wx:for="{{reimbFiles}}" wx:key="fileID" wx:for-item="f">
+          <text class="file-chip-name">📄 {{f.name}}</text>
+          <view class="file-chip-remove" catchtap="removeReimbFile" data-index="{{index}}">×</view>
+        </view>
+      </view>
+    </view>
+    <view class="reimb-tip">提交后挂到「待报销」，账房核对凭证后报销给你；报销那一刻金库才扣款。</view>
+    <button class="submit-btn" bindtap="submitReimb">提交垫付</button>
+  </view>
+</view>
+
+<!-- 我的垫付：列表弹窗（全员） -->
+<view class="modal-mask" wx:if="{{showMyReimbModal}}" bindtap="hideMyReimb">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">我的垫付</view>
+    <!-- 待还总额：自由垫付待报销 + 采购垫款 -->
+    <view class="myrb-total-bar" wx:if="{{myUnsettledCount > 0}}">
+      <text class="myrb-total-label">村里待还给我</text>
+      <text class="myrb-total-amt">¥{{myUnsettledTotal}}</text>
+      <text class="myrb-total-sub">自由 ¥{{myUnsettledFreeTotal}} · 采购 ¥{{myUnsettledAdvTotal}}</text>
+    </view>
+    <!-- 我发起的转出资申请：审核进度 -->
+    <view class="conv-mine" wx:for="{{convMine}}" wx:key="_id" wx:for-item="cm">
+      <view class="conv-mine-info">
+        <text class="conv-mine-title">转借款申请 · ¥{{cm.total}}（{{cm.itemCount}}笔）</text>
+        <text class="conv-mine-sub">主管审核中 {{cm.approvedCount}}/{{cm.approverCount}}</text>
+      </view>
+      <view class="conv-mine-cancel" catchtap="cancelMyConversion" data-id="{{cm._id}}">撤回</view>
+    </view>
+    <!-- 转出资勾选开关：仅当有待报销时 -->
+    <view class="conv-toggle-row" wx:if="{{myReimbCounts.pending > 0 || myAdvances.length > 0}}">
+      <view class="conv-toggle {{convSelecting?'on':''}}" bindtap="toggleConvSelect">{{convSelecting ? '✕ 退出勾选' : '🤝 待报销转借款'}}</view>
+    </view>
+    <!-- 二级 tab：自由垫付 / 采购垫款 -->
+    <view class="myrb-tabs">
+      <view class="myrb-tab {{myReimbTab==='free'?'active':''}}" bindtap="setMyReimbTab" data-val="free">自由垫付 {{reimbMine.length ? reimbMine.length : 0}}</view>
+      <view class="myrb-tab {{myReimbTab==='purchase'?'active':''}}" bindtap="setMyReimbTab" data-val="purchase">采购垫款 {{myAdvances.length ? myAdvances.length : 0}}</view>
+    </view>
+    <!-- 状态筛选：仅自由垫付 tab 显示 -->
+    <view class="ledger-filter-row myrb-row" wx:if="{{myReimbTab==='free' && reimbMine.length > 0}}">
+      <view class="ledger-filter-tag {{myReimbFilter==='all'?'active':''}}" bindtap="setMyReimbFilter" data-val="all">全部 {{myReimbCounts.all}}</view>
+      <view class="ledger-filter-tag {{myReimbFilter==='pending'?'active':''}}" wx:if="{{myReimbCounts.pending}}" bindtap="setMyReimbFilter" data-val="pending">待报销 {{myReimbCounts.pending}}</view>
+      <view class="ledger-filter-tag {{myReimbFilter==='reimbursed'?'active':''}}" wx:if="{{myReimbCounts.reimbursed}}" bindtap="setMyReimbFilter" data-val="reimbursed">已报销 {{myReimbCounts.reimbursed}}</view>
+      <view class="ledger-filter-tag {{myReimbFilter==='rejected'?'active':''}}" wx:if="{{myReimbCounts.rejected}}" bindtap="setMyReimbFilter" data-val="rejected">已驳回 {{myReimbCounts.rejected}}</view>
+      <view class="ledger-filter-tag {{myReimbFilter==='donated'?'active':''}}" wx:if="{{myReimbCounts.donated}}" bindtap="setMyReimbFilter" data-val="donated">捐赠 {{myReimbCounts.donated}}</view>
+    </view>
+    <view class="pending-empty" wx:if="{{myReimbTab==='free' && reimbMine.length === 0}}">你还没有垫付记录</view>
+    <view class="pending-empty" wx:elif="{{myReimbTab==='free' && myReimbFilter !== 'all' && !myReimbCounts[myReimbFilter]}}">该状态下没有记录</view>
+    <view class="pending-empty" wx:elif="{{myReimbTab==='purchase' && myAdvances.length === 0}}">没有待记账的采购垫款</view>
+    <scroll-view scroll-y style="max-height:60vh">
+      <!-- 自由垫付列表 -->
+      <block wx:if="{{myReimbTab==='free'}}">
+      <view class="reimb-mine-card {{convSelecting && m.status==='pending' && convChecked[m._id] ? 'conv-picked' : ''}}" wx:for="{{reimbMine}}" wx:key="_id" wx:for-item="m" wx:if="{{myReimbFilter === 'all' || m.status === myReimbFilter}}"
+            catchtap="{{convSelecting && m.status==='pending' ? 'toggleConvItem' : ''}}" data-id="{{m._id}}" data-amount="{{m.amountDisplay}}">
+        <view class="pending-head">
+          <view class="pending-head-left">
+            <text class="conv-check" wx:if="{{convSelecting && m.status==='pending'}}">{{convChecked[m._id] ? '☑' : '☐'}}</text>
+            <text class="pending-title">¥{{m.amountDisplay}}</text>
+          </view>
+          <text class="rb-tag {{m.statusClass}}">{{m.statusLabel}}</text>
+        </view>
+        <text class="pending-sub">{{m.note || '（无说明）'}}</text>
+        <text class="pending-sub">{{m.dateStr}}</text>
+        <text class="pending-sub rb-reject-reason" wx:if="{{m.status === 'rejected' && m.rejectReason}}">驳回原因：{{m.rejectReason}}</text>
+        <view class="pending-receipts" wx:if="{{m.hasImg}}" catchtap="previewReimbReceipt" data-shots="{{m.imgUrls}}">
+          <image class="pending-thumb" wx:for="{{m.imgUrls}}" wx:key="*this" wx:for-item="s" src="{{s}}" mode="aspectFill"/>
+          <text class="pending-receipts-hint">点看凭证</text>
+        </view>
+        <view class="pending-receipts" wx:if="{{m.hasPayImg}}" catchtap="previewReimbReceipt" data-shots="{{m.payUrls}}">
+          <text class="reimb-payback-label">账房还款凭证</text>
+          <image class="pending-thumb" wx:for="{{m.payUrls}}" wx:key="*this" wx:for-item="s" src="{{s}}" mode="aspectFill"/>
+        </view>
+        <view class="pending-actions" wx:if="{{m.status === 'pending' && !convSelecting}}">
+          <view class="pending-btn danger" catchtap="cancelMyReimb" data-id="{{m._id}}">撤回</view>
+        </view>
+      </view>
+      </block>
+
+      <!-- 采购垫款列表 -->
+      <block wx:if="{{myReimbTab==='purchase'}}">
+      <view class="adv-tab-hint" wx:if="{{myAdvances.length > 0}}">我领的采购单，报了账、账房还没记账，共 ¥{{myAdvancesTotal}}</view>
+      <view class="reimb-mine-card {{convSelecting && convCheckedP[a._id] ? 'conv-picked' : ''}}"
+            wx:for="{{myAdvances}}" wx:key="_id" wx:for-item="a"
+            catchtap="{{convSelecting ? 'toggleConvPItem' : ''}}" data-id="{{a._id}}" data-amount="{{a.amountDisplay}}">
+        <view class="pending-head">
+          <view class="pending-head-left">
+            <text class="conv-check" wx:if="{{convSelecting}}">{{convCheckedP[a._id] ? '☑' : '☐'}}</text>
+            <text class="pending-title">¥{{a.amountDisplay}}</text>
+          </view>
+          <text class="rb-tag rb-purchase">采购垫款</text>
+        </view>
+        <text class="pending-sub">{{a.title}}</text>
+      </view>
+      </block>
+    </scroll-view>
+    <!-- 转出资底部操作条 -->
+    <view class="conv-bar" wx:if="{{convSelecting}}">
+      <text class="conv-bar-total">已选 ¥{{convSelTotal}}</text>
+      <view class="conv-bar-btn" bindtap="submitConversion">转为村里借款</view>
+    </view>
+  </view>
+</view>
+
+<!-- 待报销弹窗（账房先生处理垫付） -->
+<view class="modal-mask" wx:if="{{showReimbPendingModal}}" bindtap="hideReimbPending">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">待报销垫付</view>
+    <view class="pending-empty" wx:if="{{reimbGroups.length === 0 && reimbHistGroups.length === 0}}">没有待报销的垫付了 🎉</view>
+    <scroll-view scroll-y style="max-height:72vh">
+      <view class="reimb-group" wx:for="{{reimbGroups}}" wx:key="applicantOpenid" wx:for-item="g" wx:for-index="gi">
+        <view class="reimb-group-head">
+          <text class="reimb-group-name">{{g.applicantName}} · {{g.count}}笔 · ¥{{g.totalDisplay}}</text>
+          <text class="reimb-group-all" catchtap="toggleReimbGroupAll" data-gi="{{gi}}">{{g.allChecked ? '取消全选' : '全选'}}</text>
+        </view>
+        <view class="reimb-item" wx:for="{{g.items}}" wx:key="_id" wx:for-item="it" wx:for-index="ii">
+          <view class="reimb-check {{it.checked ? 'on' : ''}}" catchtap="toggleReimbItem" data-gi="{{gi}}" data-ii="{{ii}}">{{it.checked ? '✓' : ''}}</view>
+          <view class="reimb-item-body">
+            <view class="reimb-item-top">
+              <text class="reimb-item-note">{{it.note || '（无说明）'}}</text>
+              <text class="reimb-item-amt">¥{{it.amountDisplay}}</text>
+            </view>
+            <text class="reimb-item-date">{{it.dateStr}}</text>
+            <view class="pending-receipts" wx:if="{{it.hasImg}}" catchtap="previewReimbReceipt" data-shots="{{it.imgUrls}}">
+              <image class="pending-thumb" wx:for="{{it.imgUrls}}" wx:key="*this" wx:for-item="s" src="{{s}}" mode="aspectFill"/>
+              <text class="pending-receipts-hint">点看凭证</text>
+            </view>
+            <view class="file-picker" wx:if="{{it.hasFiles}}">
+              <view class="file-chip" wx:for="{{it.fileShots}}" wx:key="fileID" wx:for-item="f" catchtap="openFileAttachment" data-fileid="{{f.fileID}}">
+                <text class="file-chip-name">📄 {{f.name}}</text>
+              </view>
+            </view>
+            <view class="reimb-item-actions">
+              <view class="pending-btn ghost" catchtap="donateReimburse" data-item="{{it}}">记捐赠</view>
+              <view class="pending-btn danger" catchtap="rejectReimburse" data-item="{{it}}">驳回</view>
+            </view>
+          </view>
+        </view>
+        <button class="submit-btn reimb-settle-btn" bindtap="settleGroup" data-gi="{{gi}}" disabled="{{g.selCount === 0}}">结算选中 {{g.selCount}} 笔 · ¥{{g.selTotalDisplay}}</button>
+      </view>
+
+      <view class="reimb-hist-title" wx:if="{{reimbHistGroups.length > 0}}">近期已处理</view>
+      <view class="reimb-hist-row" wx:for="{{reimbHistGroups}}" wx:key="_id" wx:for-item="h">
+        <view class="reimb-hist-left">
+          <text class="reimb-hist-name">{{h.applicantName}} · {{h.isBatch ? h.count + '笔' : (h.note || '（无说明）')}} · ¥{{h.amountDisplay}}</text>
+          <text class="reimb-hist-meta">{{h.statusLabel}} · {{h.dateStr}}</text>
+        </view>
+        <view class="reimb-hist-right">
+          <text class="rb-tag {{h.statusClass}}">{{h.statusLabel}}</text>
+          <view class="reimb-revoke" wx:if="{{h.status === 'reimbursed'}}" catchtap="revokeReimburse" data-item="{{h}}">撤销</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 报销结算确认弹窗（账房传还款凭证后扣款） -->
+<view class="modal-mask" wx:if="{{showReimbPayModal}}" bindtap="hideReimbPay">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">报销结算</view>
+    <view class="form-row">
+      <text class="form-label">垫付人</text>
+      <text class="form-value-readonly">{{reimbPaySel.applicantName}}</text>
+    </view>
+    <view class="reimb-sel-list">
+      <view class="reimb-sel-item" wx:for="{{reimbPaySel.items}}" wx:key="index" wx:for-item="s">
+        <text class="reimb-sel-note">{{s.note || '（无说明）'}}</text>
+        <text class="reimb-sel-amt">¥{{s.amountDisplay}}</text>
+      </view>
+    </view>
+    <view class="reimb-sel-total">合计 {{reimbPaySel.count}} 笔 · <text class="amount-out">¥{{reimbPaySel.totalDisplay}}</text></view>
+    <view class="screenshot-row">
+      <text class="screenshot-label">还款凭证（你转给 {{reimbPaySel.applicantName}} 的截图，可选）</text>
+      <view class="screenshot-picker">
+        <view class="screenshot-item" wx:for="{{reimbPayShots}}" wx:key="*this">
+          <image class="screenshot-img" src="{{item}}" mode="aspectFill" bindtap="previewReimbPayShot" data-index="{{index}}" />
+          <view class="screenshot-remove" catchtap="removeReimbPayShot" data-index="{{index}}">×</view>
+        </view>
+        <view class="screenshot-add" bindtap="chooseReimbPayAttachment">+</view>
+      </view>
+      <view class="file-picker">
+        <view class="file-chip" wx:for="{{reimbPayFiles}}" wx:key="fileID" wx:for-item="f">
+          <text class="file-chip-name">📄 {{f.name}}</text>
+          <view class="file-chip-remove" catchtap="removeReimbPayFile" data-index="{{index}}">×</view>
+        </view>
+      </view>
+    </view>
+    <view class="reimb-tip">确认后：金库记一笔支出 ¥{{reimbPaySel.totalDisplay}}、扣款一次；选中各笔垫付凭证与这张还款凭证一并归档。</view>
+    <button class="submit-btn" bindtap="confirmReimbPay">确认结算并扣款</button>
+  </view>
+</view>
+
+<!-- AI 咨询弹窗 -->
+<view class="modal-mask" wx:if="{{showConsult}}" bindtap="hideConsult">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">🤖 问问 AI</view>
+    <view class="ai-c-tip">问问村子的事，比如：金库还剩多少？这周买了啥？谁是库管？（AI 只看现有数据，不编造）</view>
+    <textarea class="ai-c-input" placeholder="输入你的问题…" value="{{consultQ}}" bindinput="setConsultQ" maxlength="200"></textarea>
+    <button class="submit-btn" bindtap="askConsult" loading="{{consulting}}" disabled="{{consulting}}">{{consulting ? '思考中…' : '问 AI'}}</button>
+
+    <view class="ai-range" wx:if="{{consultNeedRange}}">
+      <view class="ai-range-tip">记录较多，选一个区间再问：</view>
+      <view class="ai-range-btns">
+        <view class="ai-range-btn" bindtap="askConsultRange" data-range="today">今天{{consultCounts ? '（'+consultCounts.today+'条）' : ''}}</view>
+        <view class="ai-range-btn" bindtap="askConsultRange" data-range="7d">近7天{{consultCounts ? '（'+consultCounts['7d']+'条）' : ''}}</view>
+        <view class="ai-range-btn" bindtap="askConsultRange" data-range="30d">近30天{{consultCounts ? '（'+consultCounts['30d']+'条）' : ''}}</view>
+      </view>
+    </view>
+
+    <view class="ai-c-answer" wx:if="{{consultA}}">{{consultA}}</view>
+  </view>
+</view>
+
+<!-- AI 周报弹窗 -->
+<!-- 生成周报（运营 / 工作 两个 tab）-->
+<view class="modal-mask" wx:if="{{showReport}}" bindtap="hideReport">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">📊 生成周报</view>
+    <view class="staff-range-tabs">
+      <view class="staff-range-tab {{reportTab==='ops'?'active':''}}" bindtap="setReportTab" data-val="ops">运营周报</view>
+      <view class="staff-range-tab {{reportTab==='staff'?'active':''}}" bindtap="setReportTab" data-val="staff">工作周报</view>
+    </view>
+
+    <!-- 运营周报 -->
+    <block wx:if="{{reportTab==='ops'}}">
+      <block wx:if="{{!reportText && !reporting}}">
+        <view class="ai-c-tip">汇总最近 7 天的金库、采购、出入库、任务、人员、库存预警，由 AI 写成周报。数字由系统统计，AI 不改数。</view>
+        <button class="submit-btn" bindtap="genReport">生成运营周报</button>
+      </block>
+      <view class="ai-r-loading" wx:if="{{reporting}}">正在统计并生成…</view>
+      <block wx:if="{{reportText}}">
+        <scroll-view scroll-y class="ai-r-body">
+          <text class="ai-r-text">{{reportText}}</text>
+          <view class="ai-r-facts" wx:if="{{reportFacts}}">{{reportFacts}}</view>
+        </scroll-view>
+        <view class="ai-r-btns">
+          <button class="ai-back-btn" bindtap="copyReport">复制</button>
+          <button class="submit-btn ai-confirm-btn" bindtap="genReport">重新生成</button>
+        </view>
+      </block>
+    </block>
+
+    <!-- 工作周报（人员）-->
+    <block wx:if="{{reportTab==='staff'}}">
+      <view class="staff-range-tabs">
+        <view class="staff-range-tab {{staffRange==='lastWeek'?'active':''}}" bindtap="setStaffRange" data-val="lastWeek">上周（完整）</view>
+        <view class="staff-range-tab {{staffRange==='thisWeek'?'active':''}}" bindtap="setStaffRange" data-val="thisWeek">本周至今</view>
+      </view>
+      <view class="staff-ov-title">全村出勤概览（有效工作日）</view>
+      <view class="staff-ov-list">
+        <view class="staff-ov-row" wx:for="{{staffList}}" wx:key="name">
+          <text class="staff-ov-name">{{item.icon}} {{item.name}}</text>
+          <text class="staff-ov-num">近7天 {{item.validDays}} 天 · 近30天 {{item.monthValid}} 天</text>
+        </view>
+        <view class="ai-c-tip" wx:if="{{staffList.length === 0}}">暂无工作记录</view>
+      </view>
+      <block wx:if="{{!staffReportText && !staffReporting}}">
+        <view class="ai-c-tip">把所选区间各人的工作记录交给 AI 写成一段人员工作概况。AI 只归纳已记录的，不编、不打分。</view>
+        <button class="submit-btn" bindtap="genStaffReport">生成{{staffRange==='lastWeek'?'上周':'本周至今'}}叙述</button>
+      </block>
+      <view class="ai-r-loading" wx:if="{{staffReporting}}">正在汇总并生成…</view>
+      <block wx:if="{{staffReportText}}">
+        <view class="staff-range-label" wx:if="{{staffRangeLabel}}">{{staffRangeLabel}}</view>
+        <scroll-view scroll-y class="ai-r-body">
+          <text class="ai-r-text">{{staffReportText}}</text>
+        </scroll-view>
+        <view class="ai-r-btns">
+          <button class="ai-back-btn" bindtap="copyStaffReport">复制</button>
+          <button class="submit-btn ai-confirm-btn" bindtap="genStaffReport">重新生成</button>
+        </view>
+      </block>
+    </block>
+  </view>
+</view>

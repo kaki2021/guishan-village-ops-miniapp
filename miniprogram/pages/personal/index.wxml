@@ -1,0 +1,96 @@
+<view class="container">
+
+<block wx:if="{{!myName}}">
+  <view class="empty-tip">你还没加入村落，请先到营员页加入</view>
+</block>
+
+<block wx:else>
+  <!-- 顶部：一行身份 + 角色徽章 -->
+  <view class="id-line" wx:if="{{me}}">
+    <text class="id-text">👤 {{me.name}} · {{me.role}} · Lv.{{me.level}}</text>
+    <view class="id-badges">
+      <text class="role-badge" wx:for="{{roleBadges}}" wx:key="*this" wx:for-item="b">{{b}}</text>
+    </view>
+  </view>
+
+  <!-- 待我处理（图标+色块区分类型，纯展示） -->
+  <view class="section-title">待我处理</view>
+  <view class="empty-box" wx:if="{{todoItems.length === 0}}">
+    <text class="empty-emoji">🎉</text>
+    <text class="empty-word">暂无待处理事项</text>
+  </view>
+  <view class="card-list" wx:if="{{todoItems.length > 0}}">
+    <view class="row" wx:for="{{todoItems}}" wx:key="label" wx:for-item="t">
+      <view class="row-icon {{t.colorClass}}">{{t.icon}}</view>
+      <view class="row-main">
+        <text class="row-label">{{t.label}}</text>
+        <text class="row-hint">{{t.hint}}</text>
+      </view>
+      <text class="row-count">{{t.count}}</text>
+    </view>
+  </view>
+
+  <!-- 今日头衔待办：清单逐条勾选（只留痕，XP 仍按打卡整份发） -->
+  <block wx:if="{{titleDuties.length > 0}}">
+    <view class="section-title">今日头衔待办</view>
+    <view class="duty-card" wx:for="{{titleDuties}}" wx:key="titleId" wx:for-item="d">
+      <view class="duty-head">
+        <text class="duty-title">🎖 {{d.titleName}}</text>
+        <text class="duty-progress" wx:if="{{d.totalCount > 0}}">{{d.doneCount}}/{{d.totalCount}}</text>
+      </view>
+      <text class="duty-note" wx:if="{{d.dutyNote}}">{{d.dutyNote}}</text>
+      <view class="duty-item" wx:for="{{d.items}}" wx:key="id" wx:for-item="it"
+            bindtap="toggleDutyItem" data-titleid="{{d.titleId}}" data-itemid="{{it.id}}" data-checked="{{it.checked}}">
+        <text class="duty-box {{it.checked ? 'on' : ''}}">{{it.checked ? '✓' : ''}}</text>
+        <text class="duty-text {{it.checked ? 'done' : ''}}">{{it.text}}</text>
+      </view>
+      <text class="duty-empty" wx:if="{{d.totalCount === 0}}">这个头衔还没有工作清单</text>
+    </view>
+    <view class="duty-tip">勾选只做记录，经验值仍按每日打卡发放</view>
+  </block>
+
+  <!-- 我还没完成的任务（带状态：进行中/待确认/搁置） -->
+  <view class="section-title">我还没完成的任务</view>
+  <view class="empty-box" wx:if="{{myTasks.length === 0}}">
+    <text class="empty-emoji">☕</text>
+    <text class="empty-word">没有进行中的任务</text>
+  </view>
+  <view class="card-list" wx:if="{{myTasks.length > 0}}">
+    <view class="row" wx:for="{{myTasks}}" wx:key="_id" wx:for-item="t">
+      <view class="row-icon {{t.colorClass}}">{{t.icon}}</view>
+      <view class="row-main">
+        <text class="row-label">{{t.name}}</text>
+        <text class="row-hint">{{t.hint}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 我的工作记录（日报，系统自动生成）-->
+  <view class="section-title">我的工作记录</view>
+  <view class="wl-stat">
+    <view class="wl-stat-box">
+      <text class="wl-stat-num">{{weekValid}}</text>
+      <text class="wl-stat-label">本周有效工作日</text>
+    </view>
+    <view class="wl-stat-box">
+      <text class="wl-stat-num">{{monthValid}}</text>
+      <text class="wl-stat-label">本月有效工作日</text>
+    </view>
+  </view>
+  <view class="empty-box" wx:if="{{worklogDays.length === 0}}">
+    <text class="empty-emoji">📋</text>
+    <text class="empty-word">还没有工作记录（完成任务后次日凌晨自动生成）</text>
+  </view>
+  <view class="card-list" wx:if="{{worklogDays.length > 0}}">
+    <view class="wl-day" wx:for="{{worklogDays}}" wx:key="date">
+      <view class="wl-day-head">
+        <text class="wl-date">{{item.date}}</text>
+        <text class="wl-valid {{item.isValidWorkday ? 'yes' : 'no'}}">{{item.isValidWorkday ? '✓ 有效' : '无完成'}}</text>
+      </view>
+      <text class="wl-done">完成：{{item.completedText}}</text>
+      <text class="wl-note" wx:if="{{item.noteCount > 0}}">💬 {{item.noteCount}} 条备注</text>
+    </view>
+  </view>
+</block>
+
+</view>

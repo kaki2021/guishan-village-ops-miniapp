@@ -1,0 +1,11 @@
+{
+  "name": "aiStockIn",
+  "version": "1.0.0",
+  "description": "AI 入库助手（豆包/方舟）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3",
+    "xlsx": "^0.18.5",
+    "mammoth": "^1.6.0"
+  }
+}

@@ -1,0 +1,515 @@
+.container {
+  padding: 20rpx 24rpx 120rpx;
+  background: #f5f5f0;
+  min-height: 100vh;
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin: 8rpx 0 16rpx;
+}
+
+/* ===== 营员档案：整块白底拉满，内部分行 ===== */
+.member-list {
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 24rpx;
+  overflow: hidden;
+}
+.member-card {
+  background: #fff;
+  padding: 24rpx 20rpx;
+  display: flex;
+  align-items: center;
+  border-bottom: 1rpx solid #f0f0ec;
+}
+.member-card:last-child { border-bottom: none; }
+/* "我"那行：浅绿底高亮（整块白底里用底色，不用边框，更自然） */
+.member-card-me {
+  background: #f1faf6;
+}
+.me-badge {
+  background: #1a7a5e;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 500;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+  position: relative;
+  overflow: visible;
+}
+/* 股东头像角标（不挤名字行） */
+.sh-corner {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  padding: 0 6rpx;
+  box-sizing: border-box;
+  background: #f0b429;
+  color: #fff;
+  font-size: 18rpx;
+  line-height: 28rpx;
+  text-align: center;
+  border-radius: 999rpx;
+  border: 2rpx solid #fff;
+}
+.member-info { flex: 1; min-width: 0; }
+.member-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.member-role {
+  font-size: 24rpx;
+  color: #888;
+  display: block;
+  margin-top: 4rpx;
+}
+.xp-bar {
+  height: 8rpx;
+  background: #eee;
+  border-radius: 999rpx;
+  overflow: hidden;
+  margin-top: 10rpx;
+}
+.xp-fill {
+  height: 100%;
+  background: #1a7a5e;
+  border-radius: 999rpx;
+}
+.member-stat {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.member-week {
+  font-size: 24rpx;
+  color: #1a7a5e;
+  font-weight: 500;
+}
+.member-total {
+  font-size: 20rpx;
+  color: #aaa;
+  margin-top: 4rpx;
+}
+
+/* 我的主页入口按钮 */
+.my-entry {
+  background: #e8f5f0;
+  border-radius: 12rpx;
+  padding: 18rpx 24rpx;
+  margin: 0 0 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.my-entry-text { font-size: 26rpx; color: #1a7a5e; font-weight: 500; }
+.my-entry-arrow { font-size: 32rpx; color: #1a7a5e; }
+
+.empty-tip {
+  text-align: center;
+  color: #aaa;
+  font-size: 26rpx;
+  padding: 40rpx 0;
+}
+.add-btn-wrap { margin-bottom: 24rpx; }
+.add-btn {
+  background: #1a7a5e;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+/* 弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+}
+.modal {
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx 32rpx 60rpx;
+  width: 100%;
+  box-sizing: border-box;
+  /* 内容长了要能滚（头衔清单加进来后表单会超一屏），并给底部安全区留白 */
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
+}
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 32rpx;
+  text-align: center;
+}
+.form-row { display: flex; align-items: center; margin-bottom: 28rpx; }
+.form-label { font-size: 28rpx; color: #555; width: 80rpx; flex-shrink: 0; }
+.form-input {
+  flex: 1;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  font-size: 28rpx;
+}
+.form-row-wrap { align-items: flex-start; }
+.type-list { display: flex; flex-wrap: wrap; gap: 12rpx; flex: 1; }
+.type-tag {
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #e0e0e0;
+  font-size: 24rpx;
+  color: #555;
+}
+.type-tag.active { background: #1a7a5e; color: #fff; border-color: #1a7a5e; }
+.submit-btn {
+  background: #1a7a5e;
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  margin-top: 8rpx;
+  border: none;
+}
+.form-textarea {
+  width: 100%;
+  min-height: 120rpx;
+  background: #f7f7f4;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  font-size: 26rpx;
+  box-sizing: border-box;
+}
+
+/* 身份提示条 */
+.my-identity-tip {
+  background: #e8f5f0;
+  color: #1a7a5e;
+  font-size: 24rpx;
+  padding: 14rpx 24rpx;
+  border-radius: 12rpx;
+  margin: 0 0 20rpx;
+}
+.my-identity-tip.warn { background: #fef9c3; color: #854d0e; }
+
+/* 申请审核中横幅 */
+.appl-banner {
+  background: #fef9c3;
+  color: #854d0e;
+  font-size: 26rpx;
+  line-height: 1.5;
+  padding: 18rpx 24rpx;
+  border-radius: 14rpx;
+  margin: 16rpx 0;
+}
+
+/* ===== 职位一览卡片 ===== */
+.roster-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx 20rpx;
+  margin: 0 0 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.roster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+.roster-title { margin: 0; font-size: 28rpx; font-weight: 500; color: #1a1a1a; }
+.roster-gear {
+  font-size: 24rpx;
+  color: #185fa5;
+  background: #e6f1fb;
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+}
+.roster-group { padding: 16rpx 0; border-top: 1rpx solid #f0f0ec; }
+.roster-group:first-of-type { border-top: none; }
+.roster-site { display: block; font-size: 26rpx; color: #999; margin-bottom: 10rpx; }
+.roster-entries { display: flex; flex-direction: column; gap: 10rpx; }
+.roster-tag { display: flex; align-items: center; white-space: nowrap; }
+.roster-pos {
+  font-size: 24rpx;
+  color: #1a7a5e;
+  background: #e8f5f0;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+  min-width: 132rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+.roster-name { font-size: 28rpx; color: #1a1a1a; }
+.roster-empty { color: #bbb; font-size: 26rpx; }
+.roster-empty-all { color: #bbb; font-size: 26rpx; padding: 12rpx 0; }
+
+/* 待初审申请卡片 */
+.appl-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx 20rpx;
+  margin: 0 0 24rpx;
+}
+.appl-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+  border-top: 1rpx solid #f0f0ec;
+}
+.appl-item:first-of-type { border-top: none; }
+.appl-info { flex: 1; padding-right: 16rpx; }
+.appl-name { font-size: 28rpx; color: #333; display: block; }
+.appl-note { font-size: 24rpx; color: #666; display: block; margin-top: 4rpx; }
+.appl-note.muted { color: #bbb; }
+.appl-acts { display: flex; gap: 12rpx; }
+
+/* 人员流动表决卡片 */
+.vote-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx 20rpx;
+  margin: 0 0 24rpx;
+}
+.vote-item { padding: 16rpx 0; border-top: 1rpx solid #f0f0ec; }
+.vote-item:first-of-type { border-top: none; }
+.vote-line1 { display: flex; align-items: center; gap: 12rpx; }
+.vote-type { font-size: 22rpx; padding: 4rpx 14rpx; border-radius: 999rpx; color: #fff; }
+.vote-type.admit { background: #1a7a5e; }
+.vote-type.evict { background: #b45309; }
+.vote-target { font-size: 28rpx; color: #333; flex: 1; }
+.vote-status { font-size: 24rpx; color: #888; }
+.vote-reason { font-size: 24rpx; color: #666; display: block; margin: 6rpx 0; }
+.vote-line2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6rpx;
+}
+.vote-progress { font-size: 24rpx; color: #555; }
+.vote-acts { display: flex; align-items: center; gap: 12rpx; }
+.vote-voted { font-size: 24rpx; color: #1a7a5e; }
+.vote-rejected, .vote-withdrawn { opacity: 0.6; }
+
+/* 通用小按钮 */
+.mini-btn { font-size: 24rpx; padding: 8rpx 22rpx; border-radius: 999rpx; text-align: center; }
+.mini-btn.ok { background: #1a7a5e; color: #fff; }
+.mini-btn.no { background: #fdecea; color: #c0392b; }
+.mini-btn.ghost { background: #f0f0ec; color: #888; }
+
+/* ===== 对成员的操作菜单（自定义底部弹出，三栏对齐）===== */
+.am-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 200;
+}
+.am-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 8rpx 0 calc(8rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+.am-title {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+  padding: 28rpx 24rpx 20rpx;
+  border-bottom: 1rpx solid #f0f0ec;
+}
+.am-item {
+  display: flex;
+  align-items: center;
+  padding: 30rpx 32rpx;
+  border-bottom: 1rpx solid #f5f5f2;
+}
+.am-item:active { background: #f7f7f4; }
+.am-icon {
+  width: 52rpx;
+  flex-shrink: 0;
+  font-size: 34rpx;
+  text-align: center;
+}
+.am-action {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1a7a5e;
+  font-weight: 500;
+  margin-left: 16rpx;
+}
+.am-extra {
+  flex-shrink: 0;
+  font-size: 26rpx;
+  color: #aaa;
+  margin-left: 16rpx;
+}
+.am-cancel {
+  text-align: center;
+  font-size: 30rpx;
+  color: #888;
+  padding: 30rpx;
+  margin-top: 8rpx;
+  border-top: 8rpx solid #f5f5f0;
+}
+
+/* 二级选择菜单：无图标，选项文字居中 */
+.am-action-center { margin-left: 0; text-align: center; }
+
+/* ============ 头衔工作内容（工时+强度）· 新增样式 ============ */
+.roster-duty { font-size: 20rpx; color: #9a7; margin-left: 8rpx; }
+
+.tf-hint { font-size: 22rpx; color: #aaa; line-height: 1.5; margin: -8rpx 0 20rpx; }
+
+.tf-hours-wrap { flex: 1; display: flex; align-items: center; gap: 12rpx; }
+.tf-hours { flex: 1; }
+.tf-unit { font-size: 26rpx; color: #888; flex-shrink: 0; }
+
+.int-list { display: flex; flex-wrap: wrap; gap: 12rpx; flex: 1; }
+.int-tag {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 92rpx; padding: 12rpx 14rpx;
+  border-radius: 12rpx; border: 1rpx solid #e0e0e0; background: #fff;
+}
+.int-tag.active { background: #1a7a5e; border-color: #1a7a5e; }
+.int-tag.active .int-tag-name, .int-tag.active .int-tag-coef { color: #fff; }
+.int-tag-name { font-size: 24rpx; color: #555; }
+.int-tag-coef { font-size: 20rpx; color: #aaa; margin-top: 2rpx; }
+
+.xp-preview {
+  font-size: 24rpx; color: #888;
+  background: #f0faf6; border-radius: 12rpx;
+  padding: 16rpx 20rpx; margin: 8rpx 0 24rpx;
+}
+.xp-preview-num { font-size: 32rpx; font-weight: 500; color: #1a7a5e; }
+
+/* 头衔工作内容 · AI 帮判按钮 */
+.tf-ai-row { margin: 0 0 20rpx; }
+.tf-ai-btn {
+  text-align: center; padding: 16rpx 0;
+  font-size: 26rpx; color: #534AB7;
+  background: #efeafe; border-radius: 12rpx;
+}
+.tf-ai-btn.judging { color: #888; background: #f0f0eb; }
+
+/* 周几多选 */
+.wd-list { display: flex; flex-wrap: wrap; gap: 10rpx; flex: 1; }
+.wd-tag {
+  width: 64rpx; height: 64rpx; line-height: 64rpx; text-align: center;
+  border-radius: 50%; border: 1rpx solid #e0e0e0;
+  font-size: 26rpx; color: #555; background: #fff;
+}
+.wd-tag.active { background: #1a7a5e; color: #fff; border-color: #1a7a5e; }
+
+/* 头衔变更记录 */
+.tf-log { background: #f7f7f2; border-radius: 12rpx; padding: 16rpx 20rpx; margin-bottom: 20rpx; }
+.tf-log-title { font-size: 24rpx; color: #888; margin-bottom: 8rpx; }
+.tf-log-row { padding: 8rpx 0; border-bottom: 1rpx solid #ececec; }
+.tf-log-row:last-child { border-bottom: none; }
+.tf-log-main { font-size: 25rpx; color: #333; display: block; }
+.tf-log-sub { font-size: 21rpx; color: #aaa; display: block; margin-top: 2rpx; }
+
+/* ===== 头衔工作清单 ===== */
+.cl-block {
+  background: #faf9f4;
+  border-radius: 14rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+.cl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+.cl-ai-btn {
+  padding: 8rpx 22rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #1a7a5e;
+  color: #1a7a5e;
+  background: #fff;
+  font-size: 23rpx;
+}
+.cl-ai-btn.busy { color: #aaa; border-color: #ddd; }
+.cl-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+.cl-num {
+  flex-shrink: 0;
+  width: 32rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: #aaa;
+}
+.cl-input {
+  flex: 1;
+  background: #fff;
+  border-radius: 10rpx;
+  padding: 14rpx 20rpx;
+  font-size: 26rpx;
+  border: 1rpx solid #ece9de;
+}
+.cl-del {
+  flex-shrink: 0;
+  width: 44rpx;
+  height: 44rpx;
+  line-height: 40rpx;
+  text-align: center;
+  border-radius: 50%;
+  background: #f0efe8;
+  color: #999;
+  font-size: 28rpx;
+}
+.cl-add {
+  text-align: center;
+  padding: 14rpx 0;
+  border: 1rpx dashed #ccc;
+  border-radius: 10rpx;
+  color: #1a7a5e;
+  font-size: 25rpx;
+  background: #fff;
+}
+.cl-hint {
+  font-size: 21rpx;
+  color: #bbb;
+  margin-top: 12rpx;
+  line-height: 1.5;
+}

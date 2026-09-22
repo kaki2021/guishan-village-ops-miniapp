@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="summary-card">
+    <text class="summary-num">{{unlocked.length}}</text>
+    <text class="summary-label">已解锁成就</text>
+    <text class="summary-divider">/</text>
+    <text class="summary-total">{{unlocked.length + locked.length}}</text>
+    <text class="summary-label">全部成就</text>
+  </view>
+
+  <view class="section-title">已解锁 🎉</view>
+  <view class="ach-grid">
+    <view class="ach-card" wx:for="{{unlocked}}" wx:key="id">
+      <text class="ach-icon">{{item.icon}}</text>
+      <text class="ach-name">{{item.name}}</text>
+      <text class="ach-desc">{{item.desc}}</text>
+    </view>
+  </view>
+
+  <view class="section-title">待解锁 🔒</view>
+  <view class="ach-grid">
+    <view class="ach-card locked" wx:for="{{locked}}" wx:key="id">
+      <text class="ach-icon">{{item.icon}}</text>
+      <text class="ach-name">{{item.name}}</text>
+      <text class="ach-desc">{{item.desc}}</text>
+    </view>
+  </view>
+</view>

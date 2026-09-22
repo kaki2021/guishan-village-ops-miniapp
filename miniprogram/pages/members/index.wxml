@@ -1,0 +1,257 @@
+<view class="container">
+  <view class="add-btn-wrap" wx:if="{{!myName}}">
+    <button class="add-btn" bindtap="showAddModal">加入村落</button>
+  </view>
+
+  <view class="my-entry" wx:if="{{myName}}" bindtap="goPersonal">
+    <text class="my-entry-text">👤 {{myName}} · 我的主页</text>
+    <text class="my-entry-arrow">›</text>
+  </view>
+  <view class="my-identity-tip warn" wx:elif="{{!myName}}">
+    <text>⚠️ 还未加入村落，点击上方按钮加入</text>
+  </view>
+
+  <!-- 申请审核中横幅 -->
+  <view class="appl-banner" wx:if="{{myName && myStatus !== 'active'}}">
+    <text>⏳ 你的加入申请审核中（{{myStatus === 'pending_review' ? '等待执事初审' : '股东表决中'}}），通过后成为正式营员</text>
+  </view>
+
+  <!-- 职位一览 -->
+  <view class="roster-card">
+    <view class="roster-head">
+      <text class="section-title roster-title">职位一览</text>
+      <text class="roster-gear" wx:if="{{canManageTitles}}" bindtap="manageTitleTypes">⚙ 头衔</text>
+    </view>
+    <view class="roster-group" wx:for="{{roster}}" wx:key="siteId" wx:for-item="g">
+      <text class="roster-site">{{g.siteName}}</text>
+      <view class="roster-entries">
+        <view class="roster-tag" wx:for="{{g.entries}}" wx:key="index" wx:for-item="en">
+          <text class="roster-pos">{{en.position}}</text>
+          <text class="roster-name">{{en.name}}</text>
+          <text class="roster-duty" wx:if="{{en.duty}}">· {{en.duty}}</text>
+        </view>
+        <text class="roster-empty" wx:if="{{g.entries.length === 0}}">—</text>
+      </view>
+    </view>
+    <view class="roster-empty-all" wx:if="{{roster.length === 0}}">还没有任何职位</view>
+  </view>
+
+  <!-- 待初审申请（执事/主管可见） -->
+  <view class="appl-card" wx:if="{{canSeeApplications && (applReview.length > 0 || applVoteCount > 0)}}">
+    <text class="section-title">加入申请 · 待初审 {{applReview.length}}{{applVoteCount > 0 ? ' · 表决中 ' + applVoteCount : ''}}</text>
+    <view class="appl-item" wx:for="{{applReview}}" wx:key="_id" wx:for-item="a">
+      <view class="appl-info">
+        <text class="appl-name">{{a.icon}} {{a.name}} · {{a.role}}</text>
+        <text class="appl-note" wx:if="{{a.applyNote}}">{{a.applyNote}}</text>
+        <text class="appl-note muted" wx:else>（未填申请说明）</text>
+      </view>
+      <view class="appl-acts">
+        <view class="mini-btn ok" bindtap="reviewApplication" data-id="{{a._id}}" data-name="{{a.name}}" data-pass="yes">通过</view>
+        <view class="mini-btn no" bindtap="reviewApplication" data-id="{{a._id}}" data-name="{{a.name}}" data-pass="no">驳回</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 人员流动表决 -->
+  <view class="vote-card" wx:if="{{proposals.length > 0}}">
+    <text class="section-title">人员流动表决</text>
+    <view class="vote-item vote-{{p.status}}" wx:for="{{proposals}}" wx:key="_id" wx:for-item="p">
+      <view class="vote-line1">
+        <text class="vote-type {{p.type}}">{{p.typeLabel}}</text>
+        <text class="vote-target">{{p.targetName}}</text>
+        <text class="vote-status">{{p.statusLabel}}</text>
+      </view>
+      <text class="vote-reason" wx:if="{{p.reason}}">{{p.reason}}</text>
+      <view class="vote-line2">
+        <text class="vote-progress">赞成 {{p.forCount}} · 反对 {{p.againstCount}} · 需 {{p.needed}}/{{p.poolSize}}</text>
+        <view class="vote-acts" wx:if="{{p.status === 'open'}}">
+          <block wx:if="{{p.iCanVote}}">
+            <view class="mini-btn ok" bindtap="voteProposal" data-id="{{p._id}}" data-agree="yes">赞成</view>
+            <view class="mini-btn no" bindtap="voteProposal" data-id="{{p._id}}" data-agree="no">反对</view>
+          </block>
+          <text class="vote-voted" wx:elif="{{p.iVoted}}">已投{{p.iVoted === 'for' ? '赞成' : '反对'}}</text>
+          <view class="mini-btn ghost" wx:if="{{iAmHeadman || iAmSupervisor}}" bindtap="withdrawProposal" data-id="{{p._id}}">撤回</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">营员档案</view>
+  <view class="member-list">
+    <view class="member-card {{item.isMe ? 'member-card-me' : ''}}"
+      wx:for="{{members}}" wx:key="_id" wx:for-item="item"
+      bindtap="tapMember"
+      bindlongpress="longPressMember"
+      data-name="{{item.name}}"
+      data-role="{{item.role}}"
+      data-icon="{{item.icon}}">
+      <view class="avatar" style="background:{{item.avatarBg}}; color:{{item.avatarColor}}">
+        <text>{{item.avatarText}}</text>
+        <view class="sh-corner" wx:if="{{item.isShareholder}}">股</view>
+      </view>
+      <view class="member-info">
+        <text class="member-name">{{item.name}}</text>
+        <text class="member-role">{{item.icon}} {{item.role}} · Lv.{{item.level}}</text>
+        <view class="xp-bar">
+          <view class="xp-fill" style="width:{{item.xpPercent}}%"></view>
+        </view>
+      </view>
+      <view class="member-stat">
+        <text class="member-week">本周 +{{item.weekXp}}</text>
+        <text class="member-total">{{item.xp}} xp</text>
+      </view>
+    </view>
+    <view class="empty-tip" wx:if="{{members.length === 0}}">还没有营员，点上方按钮加入村落</view>
+  </view>
+</view>
+
+<!-- 加入村落弹窗 -->
+<view class="modal-mask" wx:if="{{showModal}}" bindtap="hideModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">加入村落</view>
+    <view class="form-row">
+      <text class="form-label">名字</text>
+      <input class="form-input" placeholder="如：小王" bindinput="setField" data-field="newName" value="{{newName}}"/>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">职业</text>
+      <view class="type-list">
+        <view class="type-tag {{newRole===item?'active':''}}" wx:for="{{roles}}" wx:key="*this" wx:for-item="item" bindtap="selectRole" data-val="{{item}}">{{item}}</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">图标</text>
+      <input class="form-input" placeholder="emoji，如 🌟" bindinput="setField" data-field="newIcon" value="{{newIcon}}"/>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">申请说明</text>
+      <textarea class="form-textarea" placeholder="想加入的原因（村里已有成员时需股东表决，说明有助通过）" bindinput="setField" data-field="newApplyNote" value="{{newApplyNote}}"></textarea>
+    </view>
+    <button class="submit-btn" bindtap="submitMember">确认加入</button>
+  </view>
+</view>
+
+<!-- 编辑营员弹窗 -->
+<view class="modal-mask" wx:if="{{showEditMemberModal}}" bindtap="hideEditMemberModal">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">编辑营员信息</view>
+    <view class="form-row">
+      <text class="form-label">名字</text>
+      <input class="form-input" bindinput="setEditMemberField" data-field="editMemberName" value="{{editMemberName}}"/>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">职业</text>
+      <view class="type-list">
+        <view class="type-tag {{editMemberRole===item?'active':''}}" wx:for="{{roles}}" wx:key="*this" wx:for-item="item" bindtap="selectEditRole" data-val="{{item}}">{{item}}</view>
+      </view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">图标</text>
+      <input class="form-input" placeholder="emoji，如 🌟" bindinput="setEditMemberField" data-field="editMemberIcon" value="{{editMemberIcon}}"/>
+    </view>
+    <button class="submit-btn" bindtap="submitEditMember">保存修改</button>
+  </view>
+</view>
+
+<!-- 头衔工作内容表单弹窗（新增/编辑共用）-->
+<view class="modal-mask" wx:if="{{showTitleForm}}" bindtap="hideTitleForm">
+  <view class="modal" catchtap="noop">
+    <view class="modal-title">{{tfMode === 'edit' ? '编辑头衔工作内容' : '新增头衔'}}</view>
+    <view class="form-row">
+      <text class="form-label">头衔名</text>
+      <input class="form-input" placeholder="如 厨师长 / 卫生员" bindinput="setTfField" data-field="tfName" value="{{tfName}}"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">工作内容</text>
+      <input class="form-input" placeholder="一句话说明该岗每天/每周干啥（选填）" bindinput="setTfField" data-field="tfDutyNote" value="{{tfDutyNote}}"/>
+    </view>
+
+    <!-- 工作清单：占岗人每次履职要逐条勾的事项（只留痕，不影响经验） -->
+    <view class="cl-block">
+      <view class="cl-head">
+        <text class="form-label">工作清单</text>
+        <view class="cl-ai-btn {{tfClGenerating ? 'busy' : ''}}" bindtap="aiGenChecklist">{{tfClGenerating ? '生成中…' : '🤖 AI 帮我列'}}</view>
+      </view>
+      <view class="cl-row" wx:for="{{tfChecklist}}" wx:key="id" wx:for-item="c" wx:for-index="ci">
+        <text class="cl-num">{{ci + 1}}</text>
+        <input class="cl-input" placeholder="要做的一件事" bindinput="setClItem" data-index="{{ci}}" value="{{c.text}}"/>
+        <view class="cl-del" catchtap="delClItem" data-index="{{ci}}">×</view>
+      </view>
+      <view class="cl-add" wx:if="{{tfChecklist.length < 10}}" bindtap="addClItem">+ 加一条</view>
+      <view class="cl-hint">占岗人在「营员」页可逐条勾选，只做记录，经验仍按打卡整份发放。</view>
+    </view>
+
+    <view class="tf-hint">填了下面的工时+强度，占岗人有出勤就会按周期自动得这份经验；都不填则是纯称号。</view>
+    <view class="tf-ai-row">
+      <view class="tf-ai-btn {{tfAiJudging ? 'judging' : ''}}" bindtap="tfAiJudge">{{tfAiJudging ? 'AI 判断中…' : '🤖 AI 帮判工时·强度'}}</view>
+    </view>
+    <view class="form-row">
+      <text class="form-label">工时</text>
+      <view class="tf-hours-wrap">
+        <input class="form-input tf-hours" type="digit" placeholder="每个周期几小时，可小数" bindinput="setTfField" data-field="tfHours" value="{{tfHours}}"/>
+        <text class="tf-unit">小时</text>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">强度</text>
+      <view class="int-list">
+        <view class="int-tag {{tfIntensity===item.v?'active':''}}" wx:for="{{tfIntensityOptions}}" wx:key="v" wx:for-item="item" bindtap="selectTfIntensity" data-v="{{item.v}}">
+          <text class="int-tag-name">{{item.name}}</text>
+          <text class="int-tag-coef">×{{item.coef}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap">
+      <text class="form-label">排期</text>
+      <view class="type-list">
+        <view class="type-tag {{tfSchedType==='daily'?'active':''}}" bindtap="selectTfSchedType" data-t="daily">每天</view>
+        <view class="type-tag {{tfSchedType==='weekly'?'active':''}}" bindtap="selectTfSchedType" data-t="weekly">每周</view>
+        <view class="type-tag {{tfSchedType==='monthly'?'active':''}}" bindtap="selectTfSchedType" data-t="monthly">每月</view>
+      </view>
+    </view>
+    <view class="form-row form-row-wrap" wx:if="{{tfSchedType==='weekly'}}">
+      <text class="form-label">周几</text>
+      <view class="wd-list">
+        <view class="wd-tag {{tfWeekdays.indexOf(item.v)>=0?'active':''}}" wx:for="{{weekdayOptions}}" wx:key="v" wx:for-item="item" bindtap="toggleTfWeekday" data-v="{{item.v}}">{{item.t}}</view>
+      </view>
+    </view>
+    <view class="form-row" wx:if="{{tfSchedType==='monthly'}}">
+      <text class="form-label">几号</text>
+      <input class="form-input" placeholder="如 1,3,15（逗号分隔）" bindinput="setTfMonthDays" value="{{tfMonthDays}}"/>
+    </view>
+    <view class="xp-preview">每次经验 = <text class="xp-preview-num">{{tfXpPreview}}</text> xp{{tfSchedType==='daily' ? '（每天到期）' : tfSchedType==='weekly' ? '（每周到期，按打卡发）' : '（每月到期，按打卡发）'}}</view>
+    <view class="tf-log" wx:if="{{tfMode==='edit' && tfReviseLog.length}}">
+      <view class="tf-log-title">变更记录 · {{tfReviseLog.length}} 条</view>
+      <view class="tf-log-row" wx:for="{{tfReviseLog}}" wx:key="idx" wx:for-item="r">
+        <text class="tf-log-main">{{r.field}}：{{r.from}} → {{r.to}}</text>
+        <text class="tf-log-sub">{{r.operator}} · {{r.timeStr}}</text>
+      </view>
+    </view>
+    <button class="submit-btn" bindtap="submitTitleForm">{{tfMode === 'edit' ? '保存' : '新增'}}</button>
+  </view>
+</view>
+
+<!-- 对成员的操作菜单（自定义底部弹出，替代原生 actionSheet） -->
+<view class="am-mask" wx:if="{{showActionMenu}}" bindtap="hideActionMenu">
+  <view class="am-sheet" catchtap="noop">
+    <view class="am-title">对「{{amName}}」的操作</view>
+    <view class="am-item" wx:for="{{amItems}}" wx:key="key" wx:for-item="it" bindtap="tapActionMenuItem" data-key="{{it.key}}">
+      <text class="am-icon">{{it.icon}}</text>
+      <text class="am-action">{{it.action}}</text>
+      <text class="am-extra" wx:if="{{it.extra}}">{{it.extra}} ›</text>
+    </view>
+    <view class="am-cancel" bindtap="hideActionMenu">取消</view>
+  </view>
+</view>
+
+<!-- 通用单列选择菜单（选地方/头衔/范围等二级选择，复用同款外观） -->
+<view class="am-mask" wx:if="{{showPickMenu}}" bindtap="hidePickMenu">
+  <view class="am-sheet" catchtap="noop">
+    <view class="am-title">{{pickTitle}}</view>
+    <view class="am-item" wx:for="{{pickItems}}" wx:key="label" wx:for-item="it" bindtap="tapPickItem" data-index="{{index}}">
+      <text class="am-action am-action-center">{{it.label}}</text>
+      <text class="am-extra" wx:if="{{it.extra}}">{{it.extra}} ›</text>
+    </view>
+    <view class="am-cancel" bindtap="hidePickMenu">取消</view>
+  </view>
+</view>
