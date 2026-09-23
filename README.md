@@ -8,17 +8,28 @@
 
 <table>
   <tr>
+    <td align="center"><img src="docs/screenshots/dashboard.jpg" width="240" alt="运营总览"><br>运营总览</td>
+    <td align="center"><img src="docs/screenshots/schedule.jpg" width="240" alt="营地日程"><br>营地日程</td>
     <td align="center"><img src="docs/screenshots/checkin.jpg" width="240" alt="每日打卡"><br>每日打卡</td>
-    <td align="center"><img src="docs/screenshots/ai-weekly-report.jpg" width="240" alt="AI 周报"><br>AI 周报</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/ai-weekly-report.jpg" width="240" alt="运营周报"><br>运营周报</td>
+    <td align="center"><img src="docs/screenshots/work-weekly-report.jpg" width="240" alt="工作周报"><br>工作周报</td>
     <td align="center"><img src="docs/screenshots/achievements.jpg" width="240" alt="成就系统"><br>成就系统</td>
   </tr>
   <tr>
+    <td align="center"><img src="docs/screenshots/inventory.jpg" width="240" alt="库存管理"><br>库存管理</td>
+    <td align="center"><img src="docs/screenshots/procurement.jpg" width="240" alt="采购流程"><br>采购流程</td>
     <td align="center"><img src="docs/screenshots/requisition.jpg" width="240" alt="领料流程"><br>领料流程</td>
+  </tr>
+  <tr>
     <td align="center"><img src="docs/screenshots/stocktake.jpg" width="240" alt="库存盘点"><br>库存盘点</td>
+    <td align="center"><img src="docs/screenshots/tasks.jpg" width="240" alt="任务协作"><br>任务协作</td>
+    <td align="center"><img src="docs/screenshots/members.jpg" width="240" alt="营员与职位"><br>营员与职位</td>
   </tr>
 </table>
 
-公开截图仅用于展示界面与交互；含真实姓名、余额、采购明细等运营数据的页面未收入仓库。
+以上 12 张截图来自小程序实际运行页面，用于展示总览、仓库、任务、营员与成就等主要模块。截图中的姓名、余额、采购与任务内容属于当时的页面记录，不包含对应云数据库或可登录凭证。
 
 ## 核心功能
 
@@ -272,7 +283,7 @@ git status --ignored
 
 ## 项目状态
 
-项目仍在持续迭代。后续计划包括补充界面截图、完善分页与测试、统一历史命名、继续拆分体量较大的云函数。
+项目仍在持续迭代。当前已补齐 12 张实际运行截图；后续计划包括完善分页与测试、统一历史命名、继续拆分体量较大的云函数。
 
 ## License
 
